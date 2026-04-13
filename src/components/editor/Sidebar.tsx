@@ -49,8 +49,24 @@ export const EditorSidebar = ({
       <Card>
         <p className="swiss-kicker">Template settings</p>
         <div className="mt-2 grid grid-cols-2 gap-2">
-          <input className="swiss-input" type="number" min={100} value={width} onChange={(e) => setWidth(Number(e.target.value))} />
-          <input className="swiss-input" type="number" min={100} value={height} onChange={(e) => setHeight(Number(e.target.value))} />
+          <input
+            className="swiss-input"
+            type="number"
+            min={100}
+            value={width}
+            onChange={(e) => setWidth(Number(e.target.value))}
+            aria-label="Template width"
+            placeholder="Width"
+          />
+          <input
+            className="swiss-input"
+            type="number"
+            min={100}
+            value={height}
+            onChange={(e) => setHeight(Number(e.target.value))}
+            aria-label="Template height"
+            placeholder="Height"
+          />
         </div>
       </Card>
 

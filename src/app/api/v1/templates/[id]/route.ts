@@ -5,6 +5,7 @@ import { jsonError, jsonOk } from "@/lib/api/response";
 import { appwriteCollections } from "@/lib/appwrite/collections";
 import { toTemplateRecord } from "@/lib/appwrite/records";
 import { serverEnv } from "@/lib/env/server";
+import { isExpiredResource } from "@/lib/expiry";
 import { normalizeTemplateDocument } from "@/lib/template/normalize";
 
 type UpdateTemplateBody = {
@@ -25,6 +26,10 @@ const getOwnedTemplate = async (templateId: string, userId: string, databases: D
 
   if (template.user_id !== userId) {
     throw new Error("NOT_FOUND");
+  }
+  if (isExpiredResource(template.created_at)) {
+    await databases.deleteDocument(serverEnv.appwriteDatabaseId, appwriteCollections.templates, templateId);
+    throw new Error("EXPIRED");
   }
 
   return template;

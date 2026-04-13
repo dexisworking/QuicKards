@@ -5,6 +5,7 @@ import { jsonError, jsonOk } from "@/lib/api/response";
 import { appwriteCollections } from "@/lib/appwrite/collections";
 import { toProjectRecord } from "@/lib/appwrite/records";
 import { serverEnv } from "@/lib/env/server";
+import { isExpiredResource } from "@/lib/expiry";
 
 type CreateProjectBody = {
   name?: string;
@@ -24,8 +25,29 @@ export async function GET() {
       Query.limit(500),
     ]);
 
+    const normalizedProjects = projects.documents.map((document) => toProjectRecord(document));
+    const [expired, active] = normalizedProjects.reduce<[typeof normalizedProjects, typeof normalizedProjects]>(
+      (acc, project) => {
+        if (isExpiredResource(project.created_at)) {
+          acc[0].push(project);
+        } else {
+          acc[1].push(project);
+        }
+        return acc;
+      },
+      [[], []],
+    );
+
+    if (expired.length > 0) {
+      await Promise.allSettled(
+        expired.map((item) =>
+          auth.databases.deleteDocument(serverEnv.appwriteDatabaseId, appwriteCollections.projects, item.id),
+        ),
+      );
+    }
+
     return jsonOk({
-      projects: projects.documents.map((document) => toProjectRecord(document)),
+      projects: active,
     });
   } catch (error) {
     return jsonError("Failed to list projects", 500, String(error));

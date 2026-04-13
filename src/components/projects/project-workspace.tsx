@@ -200,7 +200,7 @@ export const ProjectWorkspace = ({ projectId, initialData }: Props) => {
         </div>
       ) : null}
 
-      <section className="grid gap-3 md:grid-cols-4">
+      <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Card>
           <p className="swiss-kicker">Rows</p>
           <p className="mt-1 text-2xl font-semibold text-zinc-900">{projectData.cardData.length}</p>
@@ -235,13 +235,13 @@ export const ProjectWorkspace = ({ projectId, initialData }: Props) => {
               setCsvFile(e.dataTransfer.files?.[0] ?? null);
             }}
             animate={{ scale: dragCsv ? 1.01 : 1 }}
-            className={`flex min-h-24 min-w-[260px] cursor-pointer items-center justify-center rounded-2xl border border-dashed p-3 text-sm ${dragCsv ? "border-indigo-500 bg-indigo-50" : "border-zinc-300"}`}
+            className={`flex min-h-24 w-full cursor-pointer items-center justify-center rounded-2xl border border-dashed p-3 text-sm md:min-w-[260px] ${dragCsv ? "border-indigo-500 bg-indigo-50" : "border-zinc-300"}`}
           >
             <input className="hidden" type="file" accept=".csv,text/csv" onChange={(event) => setCsvFile(event.target.files?.[0] ?? null)} />
             <UploadCloud className="mr-2 h-4 w-4" />
             {csvFile ? csvFile.name : "Drop CSV or click to browse"}
           </motion.label>
-          <Button disabled={isBusy} variant="primary" title="Upload CSV data">
+          <Button disabled={isBusy} variant="primary" title="Upload CSV data" className="w-full sm:w-auto">
             {isBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileUp className="mr-2 h-4 w-4" />}
             Upload CSV
           </Button>
@@ -264,26 +264,21 @@ export const ProjectWorkspace = ({ projectId, initialData }: Props) => {
               setZipFile(e.dataTransfer.files?.[0] ?? null);
             }}
             animate={{ scale: dragZip ? 1.01 : 1 }}
-            className={`flex min-h-24 min-w-[260px] cursor-pointer items-center justify-center rounded-2xl border border-dashed p-3 text-sm ${dragZip ? "border-indigo-500 bg-indigo-50" : "border-zinc-300"}`}
+            className={`flex min-h-24 w-full cursor-pointer items-center justify-center rounded-2xl border border-dashed p-3 text-sm md:min-w-[260px] ${dragZip ? "border-indigo-500 bg-indigo-50" : "border-zinc-300"}`}
           >
             <input className="hidden" type="file" accept=".zip,application/zip" onChange={(event) => setZipFile(event.target.files?.[0] ?? null)} />
             <UploadCloud className="mr-2 h-4 w-4" />
             {zipFile ? zipFile.name : "Drop ZIP or click to browse"}
           </motion.label>
-          <Button disabled={isBusy} title="Upload ZIP mapping">
+          <Button disabled={isBusy} title="Upload ZIP mapping" className="w-full sm:w-auto">
             {isBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ImageUp className="mr-2 h-4 w-4" />}
             Upload ZIP
           </Button>
         </form>
         <form className="mt-3 flex flex-wrap items-end gap-2" onSubmit={uploadSingleImage}>
-          <input
-            value={singleCardId}
-            onChange={(event) => setSingleCardId(event.target.value)}
-            placeholder="card_id"
-            className="swiss-input max-w-[220px]"
-          />
-          <input className="swiss-file max-w-sm" type="file" accept="image/*" onChange={(event) => setSingleImageFile(event.target.files?.[0] ?? null)} />
-          <Button disabled={isBusy} title="Upload single card image">
+          <input value={singleCardId} onChange={(event) => setSingleCardId(event.target.value)} placeholder="card_id" className="swiss-input w-full sm:max-w-[220px]" />
+          <input className="swiss-file w-full sm:max-w-sm" type="file" accept="image/*" onChange={(event) => setSingleImageFile(event.target.files?.[0] ?? null)} />
+          <Button disabled={isBusy} title="Upload single card image" className="w-full sm:w-auto">
             Upload single image
           </Button>
         </form>
@@ -293,10 +288,10 @@ export const ProjectWorkspace = ({ projectId, initialData }: Props) => {
         <p className="swiss-kicker">Step 3</p>
         <h2 className="text-base font-semibold text-zinc-900">Render output</h2>
         <div className="mt-3 flex flex-wrap gap-2">
-          <Button disabled={isBusy} onClick={runPreview} title="Render preview cards">
+          <Button disabled={isBusy} onClick={runPreview} title="Render preview cards" className="w-full sm:w-auto">
             Render preview (5 cards)
           </Button>
-          <Button disabled={isBusy} onClick={runRender} variant="primary" title="Run full card generation">
+          <Button disabled={isBusy} onClick={runRender} variant="primary" title="Run full card generation" className="w-full sm:w-auto">
             {isBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
             Full batch render
           </Button>
@@ -322,14 +317,14 @@ export const ProjectWorkspace = ({ projectId, initialData }: Props) => {
         <div className="mt-3 space-y-2">
           {projectData.jobs.length ? (
             projectData.jobs.map((job) => (
-              <div key={job.id} className="flex flex-wrap items-center justify-between gap-2 border border-zinc-300 px-3 py-2">
+              <div key={job.id} className="flex flex-col gap-2 border border-zinc-300 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
                 <div className="text-sm">
                   <p className="font-medium text-zinc-900">{job.id}</p>
                   <p className="text-xs uppercase tracking-wide text-zinc-500">{job.status}</p>
                   {job.error ? <p className="text-xs text-red-600">{job.error}</p> : null}
                 </div>
                 {job.status === "completed" ? (
-                  <Button onClick={() => downloadJob(job.id)} title="Download rendered zip">
+                  <Button onClick={() => downloadJob(job.id)} title="Download rendered zip" className="w-full sm:w-auto">
                     <Download className="mr-2 h-4 w-4" />
                     Download ZIP
                   </Button>
@@ -348,7 +343,7 @@ export const ProjectWorkspace = ({ projectId, initialData }: Props) => {
           Cards: {projectData.cardData.length} | Images: {projectData.assets.length} | Status: {projectData.project.status}
         </p>
         <div className="mt-3 max-h-64 overflow-auto border border-zinc-300">
-          <table className="w-full text-left text-xs">
+          <table className="min-w-[640px] w-full text-left text-xs">
             <thead className="bg-zinc-50 text-zinc-600">
               <tr>
                 <th className="px-2 py-1">card_id</th>

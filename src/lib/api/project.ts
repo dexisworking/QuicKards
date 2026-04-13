@@ -3,13 +3,14 @@ import { jsonError } from "@/lib/api/response";
 import { appwriteCollections } from "@/lib/appwrite/collections";
 import { toProjectRecord } from "@/lib/appwrite/records";
 import { serverEnv } from "@/lib/env/server";
+import { isExpiredResource } from "@/lib/expiry";
 
 export const ensureProjectAccess = async (
   databases: Databases,
   projectId: string,
   userId: string,
 ): Promise<
-  | { project: { id: string; user_id: string; template_id: string | null; name: string; status: string } }
+  | { project: { id: string; user_id: string; template_id: string | null; name: string; status: string; created_at: string } }
   | { errorResponse: ReturnType<typeof jsonError> }
 > => {
   try {
@@ -25,6 +26,11 @@ export const ensureProjectAccess = async (
       return { errorResponse: jsonError("Project not found", 404) };
     }
 
+    if (isExpiredResource(project.created_at)) {
+      await databases.deleteDocument(serverEnv.appwriteDatabaseId, appwriteCollections.projects, projectId);
+      return { errorResponse: jsonError("Project expired", 404) };
+    }
+
     return {
       project: {
         id: project.id,
@@ -32,6 +38,7 @@ export const ensureProjectAccess = async (
         template_id: project.template_id,
         name: project.name,
         status: project.status,
+        created_at: project.created_at,
       },
     };
   } catch {

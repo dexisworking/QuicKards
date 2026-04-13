@@ -73,11 +73,11 @@ export const EditorPropertiesPanel = ({
               </label>
             </div>
           )}
-          <div className="flex gap-2">
-            <Button type="button" variant="primary" onClick={applySelectedChanges} title="Apply changes">
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Button type="button" variant="primary" onClick={applySelectedChanges} title="Apply changes" className="w-full sm:w-auto">
               Apply
             </Button>
-            <Button type="button" onClick={removeSelectedField} title="Delete selected">
+            <Button type="button" onClick={removeSelectedField} title="Delete selected" className="w-full sm:w-auto">
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>

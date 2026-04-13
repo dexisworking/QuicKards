@@ -21,7 +21,7 @@ export const Modal = ({ open, onClose, title, children }: ModalProps) => {
           onClick={onClose}
         >
           <motion.div
-            className="w-full max-w-lg rounded-t-2xl bg-[var(--surface)] p-4 md:rounded-2xl"
+            className="max-h-[85vh] w-full overflow-y-auto rounded-t-2xl bg-[var(--surface)] p-4 md:max-h-[80vh] md:max-w-lg md:rounded-2xl"
             initial={{ y: 24, scale: 0.98, opacity: 0 }}
             animate={{ y: 0, scale: 1, opacity: 1 }}
             exit={{ y: 24, scale: 0.98, opacity: 0 }}

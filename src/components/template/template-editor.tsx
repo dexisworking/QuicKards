@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { SlidersHorizontal, Wrench } from "lucide-react";
 import { CanvasArea } from "@/components/editor/CanvasArea";
 import { EditorPropertiesPanel } from "@/components/editor/PropertiesPanel";
 import { EditorSidebar } from "@/components/editor/Sidebar";
@@ -536,12 +537,14 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
         </div>
       </div>
 
-      <div className="flex gap-2 xl:hidden">
+      <div className="sticky bottom-3 z-30 flex gap-2 xl:hidden">
         <Button type="button" fullWidth onClick={() => setShowSidebarModal(true)}>
-          Open sidebar
+          <Wrench className="mr-2 h-4 w-4" />
+          Tools
         </Button>
         <Button type="button" fullWidth onClick={() => setShowPropertiesModal(true)}>
-          Open properties
+          <SlidersHorizontal className="mr-2 h-4 w-4" />
+          Properties
         </Button>
       </div>
 

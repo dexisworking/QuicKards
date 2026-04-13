@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Query } from "node-appwrite";
 import { AuthPanel } from "@/components/auth/auth-panel";
+import { ResourceList } from "@/components/dashboard/resource-list";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { CreateProjectForm } from "@/components/projects/create-project-form";
 import { getCurrentUser } from "@/lib/api/auth";
@@ -8,6 +9,7 @@ import { getAppwriteSessionServices } from "@/lib/appwrite/client";
 import { appwriteCollections } from "@/lib/appwrite/collections";
 import { toProjectRecord, toTemplateRecord } from "@/lib/appwrite/records";
 import { serverEnv } from "@/lib/env/server";
+import { getExpiryCountdown, isExpiredResource } from "@/lib/expiry";
 
 const features = [
   {
@@ -91,8 +93,26 @@ export default async function Home() {
     ]),
   ]);
 
-  const templates = templatesResult.documents.map((document) => toTemplateRecord(document));
-  const projects = projectsResult.documents.map((document) => toProjectRecord(document));
+  const allTemplates = templatesResult.documents.map((document) => toTemplateRecord(document));
+  const allProjects = projectsResult.documents.map((document) => toProjectRecord(document));
+  const templates = allTemplates.filter((item) => !isExpiredResource(item.created_at));
+  const projects = allProjects.filter((item) => !isExpiredResource(item.created_at));
+  const expiredTemplates = allTemplates.filter((item) => isExpiredResource(item.created_at));
+  const expiredProjects = allProjects.filter((item) => isExpiredResource(item.created_at));
+
+  if (expiredTemplates.length > 0 || expiredProjects.length > 0) {
+    await Promise.allSettled([
+      ...expiredTemplates.map((item) =>
+        databases.deleteDocument(serverEnv.appwriteDatabaseId, appwriteCollections.templates, item.id),
+      ),
+      ...expiredProjects.map((item) =>
+        databases.deleteDocument(serverEnv.appwriteDatabaseId, appwriteCollections.projects, item.id),
+      ),
+    ]);
+  }
+  const nearestExpiry = [...projects.map((item) => item.created_at), ...templates.map((item) => item.created_at)]
+    .sort()
+    .at(0);
 
   return (
     <main className="min-h-screen pb-8">
@@ -122,6 +142,14 @@ export default async function Home() {
           </div>
         </section>
 
+        <section className="swiss-section border-amber-300 bg-amber-50 p-4">
+          <p className="swiss-kicker text-amber-700">Auto-expiry policy</p>
+          <p className="mt-1 text-sm text-amber-900">
+            Projects and templates are automatically deleted after 36 hours from creation.
+            {nearestExpiry ? ` Next expiry window: ${getExpiryCountdown(nearestExpiry)}.` : ""}
+          </p>
+        </section>
+
         <section className="grid gap-5 lg:grid-cols-[360px_1fr]">
           <div className="space-y-4">
             <CreateProjectForm templates={templates.map((item) => ({ id: item.id, name: item.name }))} />
@@ -136,45 +164,8 @@ export default async function Home() {
           </div>
 
           <div className="space-y-4">
-            <section className="swiss-section p-5">
-              <p className="swiss-kicker">Projects</p>
-              <div className="mt-3 space-y-2">
-                {projects.length === 0 ? (
-                  <p className="text-sm text-zinc-600">No projects yet.</p>
-                ) : (
-                  projects.map((project) => (
-                    <Link
-                      key={project.id}
-                      href={`/projects/${project.id}`}
-                      className="flex items-center justify-between border border-zinc-300 bg-white px-3 py-2 hover:bg-zinc-50"
-                    >
-                      <span className="text-sm text-zinc-900">{project.name}</span>
-                      <span className="text-xs uppercase tracking-wide text-zinc-500">{project.status}</span>
-                    </Link>
-                  ))
-                )}
-              </div>
-            </section>
-
-            <section className="swiss-section p-5">
-              <p className="swiss-kicker">Templates</p>
-              <div className="mt-3 space-y-2">
-                {templates.length === 0 ? (
-                  <p className="text-sm text-zinc-600">No templates yet.</p>
-                ) : (
-                  templates.map((template) => (
-                    <Link
-                      key={template.id}
-                      href={`/templates/${template.id}`}
-                      className="flex items-center justify-between border border-zinc-300 bg-white px-3 py-2 hover:bg-zinc-50"
-                    >
-                      <span className="text-sm text-zinc-900">{template.name}</span>
-                      <span className="text-xs text-zinc-500">{new Date(template.created_at).toLocaleDateString()}</span>
-                    </Link>
-                  ))
-                )}
-              </div>
-            </section>
+            <ResourceList title="Projects" type="project" items={projects} />
+            <ResourceList title="Templates" type="template" items={templates} />
           </div>
         </section>
       </div>

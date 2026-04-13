@@ -5,6 +5,7 @@ import { jsonError, jsonOk } from "@/lib/api/response";
 import { appwriteCollections } from "@/lib/appwrite/collections";
 import { toTemplateRecord } from "@/lib/appwrite/records";
 import { serverEnv } from "@/lib/env/server";
+import { isExpiredResource } from "@/lib/expiry";
 import { normalizeTemplateDocument } from "@/lib/template/normalize";
 
 type CreateTemplateBody = {
@@ -29,8 +30,29 @@ export async function GET() {
       Query.limit(500),
     ]);
 
+    const normalizedTemplates = templates.documents.map((document) => toTemplateRecord(document));
+    const [expired, active] = normalizedTemplates.reduce<[typeof normalizedTemplates, typeof normalizedTemplates]>(
+      (acc, template) => {
+        if (isExpiredResource(template.created_at)) {
+          acc[0].push(template);
+        } else {
+          acc[1].push(template);
+        }
+        return acc;
+      },
+      [[], []],
+    );
+
+    if (expired.length > 0) {
+      await Promise.allSettled(
+        expired.map((item) =>
+          auth.databases.deleteDocument(serverEnv.appwriteDatabaseId, appwriteCollections.templates, item.id),
+        ),
+      );
+    }
+
     return jsonOk({
-      templates: templates.documents.map((document) => toTemplateRecord(document)),
+      templates: active,
     });
   } catch (error) {
     return jsonError("Failed to list templates", 500, String(error));

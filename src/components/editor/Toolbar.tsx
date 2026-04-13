@@ -18,23 +18,23 @@ export const EditorToolbar = ({ name, setName, onSave, onPreviewToggle, previewM
       <input
         value={name}
         onChange={(event) => setName(event.target.value)}
-        className="swiss-input min-w-[200px] max-w-[360px]"
+        className="swiss-input w-full md:min-w-[240px] md:max-w-[360px]"
         aria-label="Template name"
       />
-      <div className="ml-auto flex flex-wrap items-center gap-2">
-        <Button type="button" variant="ghost" onClick={onPreviewToggle} title="Toggle preview">
+      <div className="flex w-full items-center gap-2 overflow-x-auto pb-1 md:ml-auto md:w-auto md:overflow-visible md:pb-0">
+        <Button type="button" variant="ghost" onClick={onPreviewToggle} title="Toggle preview" className="shrink-0">
           <Eye className="mr-1 h-4 w-4" />
           {previewMode ? "Edit mode" : "Preview"}
         </Button>
-        <Button type="button" variant="ghost" disabled title="Generate in project workspace">
+        <Button type="button" variant="ghost" disabled title="Generate in project workspace" className="shrink-0">
           <WandSparkles className="mr-1 h-4 w-4" />
           Generate
         </Button>
-        <Button type="button" variant="ghost" disabled title="Export from project jobs">
+        <Button type="button" variant="ghost" disabled title="Export from project jobs" className="shrink-0">
           <Download className="mr-1 h-4 w-4" />
           Export
         </Button>
-        <Button type="button" variant="primary" onClick={onSave} disabled={busy} title="Save template">
+        <Button type="button" variant="primary" onClick={onSave} disabled={busy} title="Save template" className="shrink-0">
           <Save className="mr-1 h-4 w-4" />
           {busy ? "Saving..." : "Save"}
         </Button>

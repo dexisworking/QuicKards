@@ -26,8 +26,8 @@ export const CanvasArea = ({
   onGridToggle,
 }: CanvasAreaProps) => {
   return (
-    <Card className="min-h-[520px]">
-      <div className="mb-3 flex items-center gap-2">
+    <Card className="min-h-[360px] sm:min-h-[440px] lg:min-h-[520px]">
+      <div className="mb-3 flex flex-wrap items-center gap-2">
         <Button type="button" onClick={onZoomOut} title="Zoom out">
           <ZoomOut className="h-4 w-4" />
         </Button>
@@ -35,13 +35,23 @@ export const CanvasArea = ({
         <Button type="button" onClick={onZoomIn} title="Zoom in">
           <ZoomIn className="h-4 w-4" />
         </Button>
-        <Button type="button" onClick={onGridToggle} variant={showGrid ? "primary" : "ghost"} className="ml-auto" title="Toggle grid">
+        <Button
+          type="button"
+          onClick={onGridToggle}
+          variant={showGrid ? "primary" : "ghost"}
+          className="ml-auto"
+          title="Toggle grid"
+        >
           <Grid3X3 className="h-4 w-4" />
         </Button>
       </div>
       <motion.div
         ref={canvasContainerRef}
-        className={showGrid ? "swiss-grid-bg overflow-auto rounded-2xl border border-zinc-300 p-2" : "overflow-auto rounded-2xl border border-zinc-300 p-2"}
+        className={
+          showGrid
+            ? "swiss-grid-bg overflow-auto rounded-2xl border border-zinc-300 p-1 sm:p-2"
+            : "overflow-auto rounded-2xl border border-zinc-300 p-1 sm:p-2"
+        }
         initial={{ opacity: 0.9 }}
         animate={{ opacity: 1 }}
       >

@@ -3,6 +3,7 @@ import { Query } from "node-appwrite";
 import { appwriteCollections } from "@/lib/appwrite/collections";
 import { toAssetRecord, toCardDataRecord, toProjectRecord, toTemplateRecord } from "@/lib/appwrite/records";
 import { serverEnv } from "@/lib/env/server";
+import { isExpiredResource } from "@/lib/expiry";
 import { normalizeTemplateDocument } from "@/lib/template/normalize";
 
 type CardRow = {
@@ -38,6 +39,9 @@ export const loadRenderProject = async (
 ): Promise<LoadedRenderProject> => {
   const projectDoc = await databases.getDocument(serverEnv.appwriteDatabaseId, appwriteCollections.projects, projectId);
   const project = toProjectRecord(projectDoc);
+  if (isExpiredResource(project.created_at)) {
+    throw new Error("Project expired");
+  }
 
   if (!project.template_id) {
     throw new Error("Project template not found");
@@ -49,6 +53,9 @@ export const loadRenderProject = async (
     project.template_id,
   );
   const template = toTemplateRecord(templateDoc);
+  if (isExpiredResource(template.created_at)) {
+    throw new Error("Template expired");
+  }
 
   const rowDocuments = await databases.listDocuments(serverEnv.appwriteDatabaseId, appwriteCollections.cardData, [
     Query.equal("projectId", projectId),
