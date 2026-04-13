@@ -1,10 +1,11 @@
 import {
   Client,
-  Databases,
+  TablesDB,
   Storage,
   Permission,
   Role,
   AppwriteException,
+  TablesDBIndexType,
 } from "node-appwrite";
 
 const required = (name) => {
@@ -20,7 +21,7 @@ const projectId = required("NEXT_PUBLIC_APPWRITE_PROJECT_ID");
 const apiKey = required("APPWRITE_API_KEY");
 const databaseId = required("APPWRITE_DATABASE_ID");
 
-const collections = {
+const tablesConfig = {
   templates: process.env.APPWRITE_TEMPLATES_COLLECTION_ID ?? "templates",
   projects: process.env.APPWRITE_PROJECTS_COLLECTION_ID ?? "projects",
   cardData: process.env.APPWRITE_CARD_DATA_COLLECTION_ID ?? "card_data",
@@ -35,7 +36,7 @@ const buckets = {
 };
 
 const client = new Client().setEndpoint(endpoint).setProject(projectId).setKey(apiKey);
-const databases = new Databases(client);
+const tables = new TablesDB(client);
 const storage = new Storage(client);
 
 const privatePermissions = [Permission.read(Role.users()), Permission.write(Role.users())];
@@ -53,24 +54,25 @@ const ignoreConflict = async (task) => {
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const waitForAttributes = async (collectionId, keys) => {
+const waitForColumns = async (tableId, keys) => {
   for (let index = 0; index < 30; index += 1) {
-    const attributes = await databases.listAttributes(databaseId, collectionId);
+    const columnsResponse = await tables.listColumns({ databaseId, tableId, total: false });
+    const columns = columnsResponse.columns ?? [];
     const ready = keys.every((key) => {
-      const item = attributes.attributes.find((attribute) => attribute.key === key);
-      return item?.status === "available";
+      const column = columns.find((item) => item.key === key);
+      return !column || column.status === "available";
     });
     if (ready) {
       return;
     }
     await wait(1000);
   }
-  throw new Error(`Timed out waiting for attributes on collection ${collectionId}`);
+  throw new Error(`Timed out waiting for columns on table ${tableId}`);
 };
 
 const ensureDatabase = async () => {
   try {
-    await databases.get(databaseId);
+    await tables.get({ databaseId });
     return;
   } catch (error) {
     if (!(error instanceof AppwriteException) || error.code !== 404) {
@@ -79,116 +81,171 @@ const ensureDatabase = async () => {
   }
 
   try {
-    await ignoreConflict(() => databases.create(databaseId, "QuicKards"));
+    await ignoreConflict(() => tables.create({ databaseId, name: "QuicKards", enabled: true }));
   } catch (error) {
     if (
       error instanceof AppwriteException &&
       error.code === 403 &&
       error.type === "additional_resource_not_allowed"
     ) {
-      // Free-plan projects can hit database-count limits; continue if the provided DB exists.
-      await databases.get(databaseId);
+      await tables.get({ databaseId });
       return;
     }
     throw error;
   }
 };
 
-const ensureCollection = async (collectionId, name) => {
+const ensureTable = async (tableId, name) => {
   await ignoreConflict(() =>
-    databases.createCollection(databaseId, collectionId, name, privatePermissions, false, true),
+    tables.createTable({
+      databaseId,
+      tableId,
+      name,
+      permissions: privatePermissions,
+      rowSecurity: false,
+      enabled: true,
+    }),
   );
 };
 
-const ensureStringAttribute = async (collectionId, key, size, requiredFlag, defaultValue = undefined) => {
+const ensureStringColumn = async (tableId, key, size, requiredFlag, defaultValue = undefined) => {
   await ignoreConflict(() =>
-    databases.createStringAttribute(databaseId, collectionId, key, size, requiredFlag, defaultValue),
+    tables.createStringColumn({
+      databaseId,
+      tableId,
+      key,
+      size,
+      required: requiredFlag,
+      xdefault: defaultValue,
+      array: false,
+      encrypt: false,
+    }),
   );
 };
 
-const ensureIntegerAttribute = async (collectionId, key, requiredFlag, defaultValue = undefined) => {
+const ensureIntegerColumn = async (tableId, key, requiredFlag, defaultValue = undefined) => {
   await ignoreConflict(() =>
-    databases.createIntegerAttribute(databaseId, collectionId, key, requiredFlag, undefined, undefined, defaultValue),
+    tables.createIntegerColumn({
+      databaseId,
+      tableId,
+      key,
+      required: requiredFlag,
+      xdefault: defaultValue,
+      array: false,
+    }),
   );
 };
 
-const ensureDatetimeAttribute = async (collectionId, key, requiredFlag) => {
-  await ignoreConflict(() => databases.createDatetimeAttribute(databaseId, collectionId, key, requiredFlag));
+const ensureDatetimeColumn = async (tableId, key, requiredFlag) => {
+  await ignoreConflict(() =>
+    tables.createDatetimeColumn({
+      databaseId,
+      tableId,
+      key,
+      required: requiredFlag,
+      array: false,
+    }),
+  );
 };
 
-const ensureIndex = async (collectionId, key, type, attributes) => {
-  await ignoreConflict(() => databases.createIndex(databaseId, collectionId, key, type, attributes));
+const ensureIndex = async (tableId, key, type, columns) => {
+  await ignoreConflict(() =>
+    tables.createIndex({
+      databaseId,
+      tableId,
+      key,
+      type,
+      columns,
+    }),
+  );
 };
 
 const ensureBucket = async (bucketId, name, allowedFileExtensions = []) => {
-  await ignoreConflict(() =>
-    storage.createBucket(bucketId, name, privatePermissions, false, true, 50 * 1024 * 1024, allowedFileExtensions),
-  );
+  try {
+    await storage.getBucket({ bucketId });
+  } catch (error) {
+    if (!(error instanceof AppwriteException) || error.code !== 404) {
+      throw error;
+    }
+    await ignoreConflict(() =>
+      storage.createBucket(bucketId, name, privatePermissions, false, true, 50_000_000, allowedFileExtensions),
+    );
+  }
+  await storage.updateBucket({
+    bucketId,
+    name,
+    permissions: privatePermissions,
+    fileSecurity: false,
+    enabled: true,
+    maximumFileSize: 50_000_000,
+    allowedFileExtensions,
+  });
 };
 
-const setupCollections = async () => {
-  await ensureCollection(collections.templates, "Templates");
-  await ensureCollection(collections.projects, "Projects");
-  await ensureCollection(collections.cardData, "Card Data");
-  await ensureCollection(collections.assets, "Assets");
-  await ensureCollection(collections.jobs, "Jobs");
+const setupTables = async () => {
+  await ensureTable(tablesConfig.templates, "Templates");
+  await ensureTable(tablesConfig.projects, "Projects");
+  await ensureTable(tablesConfig.cardData, "Card Data");
+  await ensureTable(tablesConfig.assets, "Assets");
+  await ensureTable(tablesConfig.jobs, "Jobs");
 
-  await ensureStringAttribute(collections.templates, "userId", 64, true);
-  await ensureStringAttribute(collections.templates, "name", 255, true);
-  await ensureIntegerAttribute(collections.templates, "width", true, 1012);
-  await ensureIntegerAttribute(collections.templates, "height", true, 638);
-  await ensureStringAttribute(collections.templates, "unit", 10, true, "px");
-  await ensureStringAttribute(collections.templates, "fieldsJson", 65535, true, "[]");
-  await ensureStringAttribute(collections.templates, "backgroundExternalUrl", 2048, false);
-  await ensureStringAttribute(collections.templates, "backgroundFileId", 64, false);
-  await ensureStringAttribute(collections.templates, "backgroundMimeType", 120, false);
-  await waitForAttributes(collections.templates, ["userId", "name", "width", "height", "unit", "fieldsJson"]);
-  await ensureIndex(collections.templates, "idx_templates_user", "key", ["userId"]);
+  await ensureStringColumn(tablesConfig.templates, "userId", 64, true);
+  await ensureStringColumn(tablesConfig.templates, "name", 255, true);
+  await ensureIntegerColumn(tablesConfig.templates, "width", true);
+  await ensureIntegerColumn(tablesConfig.templates, "height", true);
+  await ensureStringColumn(tablesConfig.templates, "unit", 10, true);
+  await ensureStringColumn(tablesConfig.templates, "fieldsJson", 65535, true);
+  await ensureStringColumn(tablesConfig.templates, "backgroundExternalUrl", 2048, false);
+  await ensureStringColumn(tablesConfig.templates, "backgroundFileId", 64, false);
+  await ensureStringColumn(tablesConfig.templates, "backgroundMimeType", 120, false);
+  await waitForColumns(tablesConfig.templates, ["userId", "name", "width", "height", "unit", "fieldsJson"]);
+  await ensureIndex(tablesConfig.templates, "idx_templates_user", TablesDBIndexType.Key, ["userId"]);
 
-  await ensureStringAttribute(collections.projects, "userId", 64, true);
-  await ensureStringAttribute(collections.projects, "templateId", 64, false);
-  await ensureStringAttribute(collections.projects, "name", 255, true);
-  await ensureStringAttribute(collections.projects, "status", 64, true, "draft");
-  await waitForAttributes(collections.projects, ["userId", "name", "status"]);
-  await ensureIndex(collections.projects, "idx_projects_user", "key", ["userId"]);
+  await ensureStringColumn(tablesConfig.projects, "userId", 64, true);
+  await ensureStringColumn(tablesConfig.projects, "templateId", 64, false);
+  await ensureStringColumn(tablesConfig.projects, "name", 255, true);
+  await ensureStringColumn(tablesConfig.projects, "status", 64, true);
+  await waitForColumns(tablesConfig.projects, ["userId", "name", "status"]);
+  await ensureIndex(tablesConfig.projects, "idx_projects_user", TablesDBIndexType.Key, ["userId"]);
 
-  await ensureStringAttribute(collections.cardData, "userId", 64, true);
-  await ensureStringAttribute(collections.cardData, "projectId", 64, true);
-  await ensureStringAttribute(collections.cardData, "cardId", 255, true);
-  await ensureStringAttribute(collections.cardData, "dataJson", 65535, true, "{}");
-  await waitForAttributes(collections.cardData, ["projectId", "cardId", "dataJson"]);
-  await ensureIndex(collections.cardData, "idx_card_data_project", "key", ["projectId"]);
-  await ensureIndex(collections.cardData, "idx_card_data_unique", "unique", ["projectId", "cardId"]);
+  await ensureStringColumn(tablesConfig.cardData, "userId", 64, true);
+  await ensureStringColumn(tablesConfig.cardData, "projectId", 64, true);
+  await ensureStringColumn(tablesConfig.cardData, "cardId", 255, true);
+  await ensureStringColumn(tablesConfig.cardData, "dataJson", 65535, true);
+  await waitForColumns(tablesConfig.cardData, ["projectId", "cardId", "dataJson"]);
+  await ensureIndex(tablesConfig.cardData, "idx_card_data_project", TablesDBIndexType.Key, ["projectId"]);
+  await ensureIndex(tablesConfig.cardData, "idx_card_data_unique", TablesDBIndexType.Unique, ["projectId", "cardId"]);
 
-  await ensureStringAttribute(collections.assets, "userId", 64, true);
-  await ensureStringAttribute(collections.assets, "projectId", 64, true);
-  await ensureStringAttribute(collections.assets, "cardId", 255, false);
-  await ensureStringAttribute(collections.assets, "fileId", 64, true);
-  await ensureStringAttribute(collections.assets, "fileType", 120, false);
-  await waitForAttributes(collections.assets, ["projectId", "fileId"]);
-  await ensureIndex(collections.assets, "idx_assets_project", "key", ["projectId"]);
-  await ensureIndex(collections.assets, "idx_assets_project_card", "unique", ["projectId", "cardId"]);
+  await ensureStringColumn(tablesConfig.assets, "userId", 64, true);
+  await ensureStringColumn(tablesConfig.assets, "projectId", 64, true);
+  await ensureStringColumn(tablesConfig.assets, "cardId", 255, false);
+  await ensureStringColumn(tablesConfig.assets, "fileId", 64, true);
+  await ensureStringColumn(tablesConfig.assets, "fileType", 120, false);
+  await waitForColumns(tablesConfig.assets, ["projectId", "fileId"]);
+  await ensureIndex(tablesConfig.assets, "idx_assets_project", TablesDBIndexType.Key, ["projectId"]);
+  await ensureIndex(tablesConfig.assets, "idx_assets_project_card", TablesDBIndexType.Unique, ["projectId", "cardId"]);
 
-  await ensureStringAttribute(collections.jobs, "userId", 64, true);
-  await ensureStringAttribute(collections.jobs, "projectId", 64, true);
-  await ensureStringAttribute(collections.jobs, "status", 64, true, "pending");
-  await ensureStringAttribute(collections.jobs, "outputFileId", 64, false);
-  await ensureStringAttribute(collections.jobs, "errorMessage", 2048, false);
-  await ensureDatetimeAttribute(collections.jobs, "completedAt", false);
-  await waitForAttributes(collections.jobs, ["projectId", "status"]);
-  await ensureIndex(collections.jobs, "idx_jobs_project", "key", ["projectId"]);
-  await ensureIndex(collections.jobs, "idx_jobs_output_file", "key", ["outputFileId"]);
+  await ensureStringColumn(tablesConfig.jobs, "userId", 64, true);
+  await ensureStringColumn(tablesConfig.jobs, "projectId", 64, true);
+  await ensureStringColumn(tablesConfig.jobs, "status", 64, true);
+  await ensureStringColumn(tablesConfig.jobs, "outputFileId", 64, false);
+  await ensureStringColumn(tablesConfig.jobs, "errorMessage", 2048, false);
+  await ensureDatetimeColumn(tablesConfig.jobs, "completedAt", false);
+  await waitForColumns(tablesConfig.jobs, ["projectId", "status"]);
+  await ensureIndex(tablesConfig.jobs, "idx_jobs_project", TablesDBIndexType.Key, ["projectId"]);
+  await ensureIndex(tablesConfig.jobs, "idx_jobs_output_file", TablesDBIndexType.Key, ["outputFileId"]);
 };
 
 const setupBuckets = async () => {
-  await ensureBucket(buckets.templates, "Template files", ["png", "jpg", "jpeg", "webp"]);
-  await ensureBucket(buckets.images, "Project images", ["png", "jpg", "jpeg", "webp"]);
-  await ensureBucket(buckets.outputs, "Render outputs", ["zip"]);
+  const sharedExtensions = ["png", "jpg", "jpeg", "webp", "zip"];
+  await ensureBucket(buckets.templates, "Template files", sharedExtensions);
+  await ensureBucket(buckets.images, "Project images", sharedExtensions);
+  await ensureBucket(buckets.outputs, "Render outputs", sharedExtensions);
 };
 
 const main = async () => {
   await ensureDatabase();
-  await setupCollections();
+  await setupTables();
   await setupBuckets();
   console.log("Appwrite setup completed successfully.");
 };
@@ -201,8 +258,6 @@ main().catch((error) => {
         "Required scopes: databases.read, databases.write, tables.read, tables.write, columns.read,",
         "columns.write, indexes.read, indexes.write, rows.read, rows.write, buckets.read,",
         "buckets.write, files.read, files.write, users.read, users.write, sessions.write.",
-        "If Appwrite reports legacy 'collections.write' or 'attributes.write', grant the modern",
-        "table/column scopes above (legacy Databases APIs map to those permissions).",
       ].join("\n"),
     );
   }

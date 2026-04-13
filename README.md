@@ -36,8 +36,10 @@ node --env-file=.env.local ./scripts/setup-appwrite.mjs
 ```
 
 This creates/updates the database resources used by QuicKards:
-- Collections: `templates`, `projects`, `card_data`, `assets`, `jobs`
+- Tables: `templates`, `projects`, `card_data`, `assets`, `jobs`
 - Buckets: `templates`, `images`, `outputs`
+
+If your Appwrite plan limits bucket count, set `APPWRITE_TEMPLATE_BUCKET_ID`, `APPWRITE_IMAGE_BUCKET_ID`, and `APPWRITE_OUTPUT_BUCKET_ID` to the same bucket ID.
 
 5. Start app:
 
