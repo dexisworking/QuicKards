@@ -92,12 +92,7 @@ export const EditorPropertiesPanel = ({
 }: PropertiesProps) => {
   return (
     <Card className="h-full xl:sticky xl:top-20">
-      <div className="mb-2 flex items-center justify-between">
-        <p className="swiss-kicker">Properties</p>
-        <span className="rounded-full border border-indigo-200 bg-indigo-50 px-2 py-1 text-[10px] uppercase tracking-wide text-indigo-700">
-          Live style
-        </span>
-      </div>
+      <p className="swiss-kicker">Properties</p>
       {!selectedObject ? (
         <p className="mt-2 text-sm text-zinc-500">Select an element on canvas to edit its properties.</p>
       ) : (

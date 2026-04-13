@@ -28,9 +28,6 @@ export const CanvasArea = ({
   return (
     <Card className="min-h-[360px] sm:min-h-[440px] lg:min-h-[520px]">
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <span className="rounded-full border border-indigo-200 bg-indigo-50 px-2 py-1 text-[11px] font-medium text-indigo-700">
-          Canvas workspace
-        </span>
         <Button type="button" onClick={onZoomOut} title="Zoom out">
           <ZoomOut className="h-4 w-4" />
         </Button>
@@ -48,7 +45,7 @@ export const CanvasArea = ({
           <Grid3X3 className="h-4 w-4" />
         </Button>
       </div>
-      <div className="rounded-2xl border border-zinc-300 bg-gradient-to-b from-zinc-100/80 to-zinc-50/50 p-2 sm:p-4">
+      <div className="rounded-2xl border border-zinc-300 bg-zinc-100/70 p-2 sm:p-4">
         <motion.div
           ref={canvasContainerRef}
           className={

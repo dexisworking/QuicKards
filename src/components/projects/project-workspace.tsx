@@ -177,12 +177,6 @@ export const ProjectWorkspace = ({ projectId, initialData }: Props) => {
 
   return (
     <div className="space-y-4">
-      <section className="swiss-section p-4">
-        <p className="swiss-kicker">Creative production flow</p>
-        <h2 className="mt-1 bg-gradient-to-r from-indigo-700 to-violet-600 bg-clip-text text-lg font-semibold text-transparent">
-          Import, map, preview, and render from one workspace
-        </h2>
-      </section>
       <AnimatePresence>
         {isBusy ? (
           <motion.div

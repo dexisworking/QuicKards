@@ -629,7 +629,7 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
   };
 
   return (
-    <div className="space-y-3 rounded-2xl border border-zinc-300/70 bg-zinc-50/40 p-2 sm:p-3">
+    <div className="space-y-3">
       <EditorToolbar
         name={name}
         setName={setName}

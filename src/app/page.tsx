@@ -44,32 +44,30 @@ export default async function Home() {
   if (!current.user || !current.sessionSecret) {
     return (
       <main className="min-h-screen pb-10">
-        <section className="border-b border-zinc-300/70 bg-zinc-50/80 backdrop-blur">
+        <section className="border-b border-zinc-300 bg-zinc-50">
           <div className="swiss-container flex items-center justify-between py-4">
-            <p className="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-sm font-semibold tracking-tight text-transparent">
-              QuicKards
-            </p>
+            <p className="text-sm font-medium tracking-tight">QuicKards</p>
             <a href="#access" className="swiss-btn-ghost">
               Sign in
             </a>
           </div>
         </section>
 
-        <section className="swiss-grid-bg border-b border-zinc-300/70 bg-zinc-50/70 py-16">
+        <section className="swiss-grid-bg border-b border-zinc-300 bg-zinc-50 py-14">
           <div className="swiss-container grid gap-8 lg:grid-cols-[1fr_380px]">
             <div className="space-y-5">
-              <p className="swiss-kicker">Creative badge studio</p>
-              <h1 className="max-w-3xl bg-gradient-to-r from-indigo-700 via-violet-600 to-cyan-500 bg-clip-text text-4xl font-semibold leading-tight text-transparent md:text-6xl">
+              <p className="swiss-kicker">Bulk identity card automation</p>
+              <h1 className="max-w-3xl text-4xl font-semibold leading-tight text-zinc-900 md:text-5xl">
                 Design once. Import data. Export production-ready ID cards in minutes.
               </h1>
               <p className="max-w-2xl text-base text-zinc-600">
                 QuicKards is built for festival teams, departments, and event operators who need clean, repeatable badge output at scale.
               </p>
               <div className="flex flex-wrap gap-2 text-sm">
-                <span className="rounded-full border border-indigo-200 bg-white px-3 py-1 shadow-sm">Template engine</span>
-                <span className="rounded-full border border-indigo-200 bg-white px-3 py-1 shadow-sm">CSV pipeline</span>
-                <span className="rounded-full border border-indigo-200 bg-white px-3 py-1 shadow-sm">Image matching</span>
-                <span className="rounded-full border border-indigo-200 bg-white px-3 py-1 shadow-sm">PDF/ZIP export</span>
+                <span className="border border-zinc-300 bg-white px-3 py-1">Template engine</span>
+                <span className="border border-zinc-300 bg-white px-3 py-1">CSV pipeline</span>
+                <span className="border border-zinc-300 bg-white px-3 py-1">Image matching</span>
+                <span className="border border-zinc-300 bg-white px-3 py-1">PDF/ZIP export</span>
               </div>
             </div>
 
@@ -146,11 +144,11 @@ export default async function Home() {
 
   return (
     <main className="min-h-screen pb-8">
-      <header className="border-b border-zinc-300/70 bg-zinc-50/80 backdrop-blur">
+      <header className="border-b border-zinc-300 bg-zinc-50">
         <div className="swiss-container flex items-center justify-between py-4">
           <div>
             <p className="swiss-kicker">Workspace</p>
-            <h1 className="bg-gradient-to-r from-indigo-700 to-violet-600 bg-clip-text text-2xl font-semibold text-transparent">QuicKards Dashboard</h1>
+            <h1 className="text-2xl font-semibold text-zinc-900">QuicKards Dashboard</h1>
           </div>
           <SignOutButton />
         </div>
