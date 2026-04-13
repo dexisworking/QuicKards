@@ -68,6 +68,8 @@ a {
 .swiss-section {
   border: 1px solid var(--line);
   background: var(--surface);
+  border-radius: 1rem;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
 }
 
 .swiss-grid-bg {

@@ -2,6 +2,11 @@
 
 import Image from "next/image";
 import { FormEvent, useCallback, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Download, FileUp, ImageUp, Loader2, Sparkles, UploadCloud } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Toast } from "@/components/ui/toast";
 
 export type ProjectPayload = {
   project: {
@@ -28,6 +33,24 @@ export const ProjectWorkspace = ({ projectId, initialData }: Props) => {
   const [singleImageFile, setSingleImageFile] = useState<File | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isBusy, setIsBusy] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [dragCsv, setDragCsv] = useState(false);
+  const [dragZip, setDragZip] = useState(false);
+
+  const withProgress = async <T,>(task: () => Promise<T>) => {
+    setProgress(8);
+    const timer = setInterval(() => {
+      setProgress((value) => Math.min(92, value + 7));
+    }, 180);
+    try {
+      const result = await task();
+      setProgress(100);
+      setTimeout(() => setProgress(0), 500);
+      return result;
+    } finally {
+      clearInterval(timer);
+    }
+  };
 
   const refreshProject = useCallback(async () => {
     const response = await fetch(`/api/v1/projects/${projectId}`);
@@ -50,7 +73,7 @@ export const ProjectWorkspace = ({ projectId, initialData }: Props) => {
     setMessage(null);
     const formData = new FormData();
     formData.append("file", csvFile);
-    const response = await fetch(`/api/v1/projects/${projectId}/data`, { method: "POST", body: formData });
+    const response = await withProgress(() => fetch(`/api/v1/projects/${projectId}/data`, { method: "POST", body: formData }));
     const payload = (await response.json()) as { imported?: number; error?: string };
     setIsBusy(false);
     if (!response.ok) {
@@ -73,7 +96,7 @@ export const ProjectWorkspace = ({ projectId, initialData }: Props) => {
     setMessage(null);
     const formData = new FormData();
     formData.append("file", zipFile);
-    const response = await fetch(`/api/v1/projects/${projectId}/images/zip`, { method: "POST", body: formData });
+    const response = await withProgress(() => fetch(`/api/v1/projects/${projectId}/images/zip`, { method: "POST", body: formData }));
     const payload = (await response.json()) as { imported?: number; error?: string };
     setIsBusy(false);
     if (!response.ok) {
@@ -97,7 +120,7 @@ export const ProjectWorkspace = ({ projectId, initialData }: Props) => {
     const formData = new FormData();
     formData.append("card_id", singleCardId.trim());
     formData.append("file", singleImageFile);
-    const response = await fetch(`/api/v1/projects/${projectId}/images`, { method: "POST", body: formData });
+    const response = await withProgress(() => fetch(`/api/v1/projects/${projectId}/images`, { method: "POST", body: formData }));
     const payload = (await response.json()) as { error?: string };
     setIsBusy(false);
 
@@ -113,11 +136,11 @@ export const ProjectWorkspace = ({ projectId, initialData }: Props) => {
   const runPreview = async () => {
     setIsBusy(true);
     setMessage(null);
-    const response = await fetch(`/api/v1/projects/${projectId}/preview`, {
+    const response = await withProgress(() => fetch(`/api/v1/projects/${projectId}/preview`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ count: 5 }),
-    });
+    }));
     const payload = (await response.json()) as { previews?: Array<{ card_id: string; image: string }>; error?: string };
     setIsBusy(false);
     if (!response.ok) {
@@ -130,7 +153,7 @@ export const ProjectWorkspace = ({ projectId, initialData }: Props) => {
   const runRender = async () => {
     setIsBusy(true);
     setMessage(null);
-    const response = await fetch(`/api/v1/projects/${projectId}/render`, { method: "POST" });
+    const response = await withProgress(() => fetch(`/api/v1/projects/${projectId}/render`, { method: "POST" }));
     const payload = (await response.json()) as { renderedCards?: number; error?: string };
     setIsBusy(false);
     if (!response.ok) {
@@ -154,44 +177,103 @@ export const ProjectWorkspace = ({ projectId, initialData }: Props) => {
 
   return (
     <div className="space-y-4">
+      <AnimatePresence>
+        {isBusy ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-40 bg-black/10 backdrop-blur-[1px]"
+          />
+        ) : null}
+      </AnimatePresence>
+      <Toast message={message} />
+
+      {progress > 0 ? (
+        <div className="h-2 overflow-hidden rounded-full bg-zinc-200">
+          <motion.div
+            className="h-full bg-indigo-500"
+            initial={{ width: 0 }}
+            animate={{ width: `${progress}%` }}
+            transition={{ duration: 0.2 }}
+          />
+        </div>
+      ) : null}
+
       <section className="grid gap-3 md:grid-cols-4">
-        <div className="swiss-section p-4">
+        <Card>
           <p className="swiss-kicker">Rows</p>
           <p className="mt-1 text-2xl font-semibold text-zinc-900">{projectData.cardData.length}</p>
-        </div>
-        <div className="swiss-section p-4">
+        </Card>
+        <Card>
           <p className="swiss-kicker">Images</p>
           <p className="mt-1 text-2xl font-semibold text-zinc-900">{projectData.assets.length}</p>
-        </div>
-        <div className="swiss-section p-4">
+        </Card>
+        <Card>
           <p className="swiss-kicker">Jobs</p>
           <p className="mt-1 text-2xl font-semibold text-zinc-900">{projectData.jobs.length}</p>
-        </div>
-        <div className="swiss-section p-4">
+        </Card>
+        <Card>
           <p className="swiss-kicker">Status</p>
           <p className="mt-1 text-sm uppercase tracking-wide text-zinc-700">{projectData.project.status}</p>
-        </div>
+        </Card>
       </section>
 
-      <section className="swiss-section p-4">
+      <Card>
         <p className="swiss-kicker">Step 1</p>
         <h2 className="text-base font-semibold text-zinc-900">Data import</h2>
         <form className="mt-3 flex flex-wrap items-end gap-2" onSubmit={uploadCsv}>
-          <input className="swiss-file max-w-sm" type="file" accept=".csv,text/csv" onChange={(event) => setCsvFile(event.target.files?.[0] ?? null)} />
-          <button disabled={isBusy} className="swiss-btn">
+          <motion.label
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragCsv(true);
+            }}
+            onDragLeave={() => setDragCsv(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragCsv(false);
+              setCsvFile(e.dataTransfer.files?.[0] ?? null);
+            }}
+            animate={{ scale: dragCsv ? 1.01 : 1 }}
+            className={`flex min-h-24 min-w-[260px] cursor-pointer items-center justify-center rounded-2xl border border-dashed p-3 text-sm ${dragCsv ? "border-indigo-500 bg-indigo-50" : "border-zinc-300"}`}
+          >
+            <input className="hidden" type="file" accept=".csv,text/csv" onChange={(event) => setCsvFile(event.target.files?.[0] ?? null)} />
+            <UploadCloud className="mr-2 h-4 w-4" />
+            {csvFile ? csvFile.name : "Drop CSV or click to browse"}
+          </motion.label>
+          <Button disabled={isBusy} variant="primary" title="Upload CSV data">
+            {isBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileUp className="mr-2 h-4 w-4" />}
             Upload CSV
-          </button>
+          </Button>
         </form>
-      </section>
+      </Card>
 
-      <section className="swiss-section p-4">
+      <Card>
         <p className="swiss-kicker">Step 2</p>
         <h2 className="text-base font-semibold text-zinc-900">Image mapping</h2>
         <form className="mt-3 flex flex-wrap items-end gap-2" onSubmit={uploadZip}>
-          <input className="swiss-file max-w-sm" type="file" accept=".zip,application/zip" onChange={(event) => setZipFile(event.target.files?.[0] ?? null)} />
-          <button disabled={isBusy} className="swiss-btn-ghost">
+          <motion.label
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragZip(true);
+            }}
+            onDragLeave={() => setDragZip(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragZip(false);
+              setZipFile(e.dataTransfer.files?.[0] ?? null);
+            }}
+            animate={{ scale: dragZip ? 1.01 : 1 }}
+            className={`flex min-h-24 min-w-[260px] cursor-pointer items-center justify-center rounded-2xl border border-dashed p-3 text-sm ${dragZip ? "border-indigo-500 bg-indigo-50" : "border-zinc-300"}`}
+          >
+            <input className="hidden" type="file" accept=".zip,application/zip" onChange={(event) => setZipFile(event.target.files?.[0] ?? null)} />
+            <UploadCloud className="mr-2 h-4 w-4" />
+            {zipFile ? zipFile.name : "Drop ZIP or click to browse"}
+          </motion.label>
+          <Button disabled={isBusy} title="Upload ZIP mapping">
+            {isBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ImageUp className="mr-2 h-4 w-4" />}
             Upload ZIP
-          </button>
+          </Button>
         </form>
         <form className="mt-3 flex flex-wrap items-end gap-2" onSubmit={uploadSingleImage}>
           <input
@@ -201,40 +283,41 @@ export const ProjectWorkspace = ({ projectId, initialData }: Props) => {
             className="swiss-input max-w-[220px]"
           />
           <input className="swiss-file max-w-sm" type="file" accept="image/*" onChange={(event) => setSingleImageFile(event.target.files?.[0] ?? null)} />
-          <button disabled={isBusy} className="swiss-btn-ghost">
+          <Button disabled={isBusy} title="Upload single card image">
             Upload single image
-          </button>
+          </Button>
         </form>
-      </section>
+      </Card>
 
-      <section className="swiss-section p-4">
+      <Card>
         <p className="swiss-kicker">Step 3</p>
         <h2 className="text-base font-semibold text-zinc-900">Render output</h2>
         <div className="mt-3 flex flex-wrap gap-2">
-          <button disabled={isBusy} onClick={runPreview} className="swiss-btn-ghost">
+          <Button disabled={isBusy} onClick={runPreview} title="Render preview cards">
             Render preview (5 cards)
-          </button>
-          <button disabled={isBusy} onClick={runRender} className="swiss-btn">
+          </Button>
+          <Button disabled={isBusy} onClick={runRender} variant="primary" title="Run full card generation">
+            {isBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
             Full batch render
-          </button>
+          </Button>
         </div>
-      </section>
+      </Card>
 
       {preview.length > 0 ? (
-        <section className="swiss-section p-4">
+        <Card>
           <h2 className="text-base font-semibold text-zinc-900">Preview</h2>
           <div className="mt-3 grid gap-3 md:grid-cols-2">
             {preview.map((item) => (
-              <div key={item.card_id} className="border border-zinc-300 p-2">
+              <motion.div key={item.card_id} whileHover={{ y: -4 }} className="border border-zinc-300 p-2">
                 <p className="mb-2 text-xs text-zinc-600">{item.card_id}</p>
                 <Image unoptimized src={item.image} width={480} height={300} alt={item.card_id} className="h-auto w-full rounded" />
-              </div>
+              </motion.div>
             ))}
           </div>
-        </section>
+        </Card>
       ) : null}
 
-      <section className="swiss-section p-4">
+      <Card>
         <h2 className="text-base font-semibold text-zinc-900">Jobs</h2>
         <div className="mt-3 space-y-2">
           {projectData.jobs.length ? (
@@ -246,9 +329,10 @@ export const ProjectWorkspace = ({ projectId, initialData }: Props) => {
                   {job.error ? <p className="text-xs text-red-600">{job.error}</p> : null}
                 </div>
                 {job.status === "completed" ? (
-                  <button onClick={() => downloadJob(job.id)} className="swiss-btn-ghost">
+                  <Button onClick={() => downloadJob(job.id)} title="Download rendered zip">
+                    <Download className="mr-2 h-4 w-4" />
                     Download ZIP
-                  </button>
+                  </Button>
                 ) : null}
               </div>
             ))
@@ -256,9 +340,9 @@ export const ProjectWorkspace = ({ projectId, initialData }: Props) => {
             <p className="text-sm text-zinc-600">No jobs yet.</p>
           )}
         </div>
-      </section>
+      </Card>
 
-      <section className="swiss-section p-4">
+      <Card>
         <h2 className="text-base font-semibold text-zinc-900">Loaded data snapshot</h2>
         <p className="mt-1 text-sm text-zinc-600">
           Cards: {projectData.cardData.length} | Images: {projectData.assets.length} | Status: {projectData.project.status}
@@ -281,9 +365,7 @@ export const ProjectWorkspace = ({ projectId, initialData }: Props) => {
             </tbody>
           </table>
         </div>
-      </section>
-
-      {message ? <p className="text-sm text-zinc-700">{message}</p> : null}
+      </Card>
     </div>
   );
 };

@@ -1,7 +1,14 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { CanvasArea } from "@/components/editor/CanvasArea";
+import { EditorPropertiesPanel } from "@/components/editor/PropertiesPanel";
+import { EditorSidebar } from "@/components/editor/Sidebar";
+import { EditorToolbar } from "@/components/editor/Toolbar";
+import { Button } from "@/components/ui/button";
+import { Modal } from "@/components/ui/modal";
+import { Toast } from "@/components/ui/toast";
 import type { TemplateDocument, TemplateField } from "@/lib/types";
 
 type EditorTemplate = {
@@ -59,6 +66,13 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
   const [message, setMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [canvasScale, setCanvasScale] = useState(1);
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [showGrid, setShowGrid] = useState(true);
+  const [previewMode, setPreviewMode] = useState(false);
+  const [showSidebarModal, setShowSidebarModal] = useState(false);
+  const [showPropertiesModal, setShowPropertiesModal] = useState(false);
+  const [snapToGrid, setSnapToGrid] = useState(true);
+  const snapRef = useRef(true);
 
   useEffect(() => {
     let unmounted = false;
@@ -117,6 +131,15 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
     canvas.on("selection:created", updateSelection);
     canvas.on("selection:updated", updateSelection);
     canvas.on("selection:cleared", () => setSelectedObject(null));
+    canvas.on("object:moving", (event) => {
+      if (!snapRef.current || !event.target) {
+        return;
+      }
+      event.target.set({
+        left: Math.round((event.target.left ?? 0) / 10) * 10,
+        top: Math.round((event.target.top ?? 0) / 10) * 10,
+      });
+    });
     fabricCanvasRef.current = canvas;
 
     if (initialTemplate?.fields?.length) {
@@ -159,6 +182,10 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
       fabricCanvasRef.current = null;
     };
   }, [fabricApi, height, initialTemplate?.fields, width]);
+
+  useEffect(() => {
+    snapRef.current = snapToGrid;
+  }, [snapToGrid]);
 
   useEffect(() => {
     const canvas = fabricCanvasRef.current;
@@ -240,10 +267,11 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
     if (!canvas) {
       return;
     }
-    canvas.setDimensions({ width: width * canvasScale, height: height * canvasScale });
-    canvas.setZoom(canvasScale);
+    const effectiveScale = canvasScale * zoomLevel;
+    canvas.setDimensions({ width: width * effectiveScale, height: height * effectiveScale });
+    canvas.setZoom(effectiveScale);
     canvas.renderAll();
-  }, [canvasScale, height, width]);
+  }, [canvasScale, height, width, zoomLevel]);
 
   const addTextField = () => {
     if (!fabricApi || !fabricCanvasRef.current) {
@@ -326,6 +354,32 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
     canvas.renderAll();
   };
 
+  const setPreviewState = (enabled: boolean) => {
+    const canvas = fabricCanvasRef.current;
+    if (!canvas) {
+      return;
+    }
+    canvas.getObjects().forEach((object) => {
+      const meta = extractMeta(object);
+      if (!meta) {
+        return;
+      }
+      if (object.type === "textbox") {
+        const textObject = object as import("fabric").fabric.Textbox;
+        textObject.set({ text: enabled ? `Sample ${meta.fieldName}` : meta.fieldName });
+      } else if (object.type === "rect") {
+        object.set({
+          fill: enabled ? "rgba(99,102,241,0.18)" : "rgba(0,0,0,0.04)",
+        });
+      }
+    });
+    setPreviewMode(enabled);
+    canvas.renderAll();
+  };
+
+  const zoomIn = () => setZoomLevel((value) => Math.min(2, Number((value + 0.1).toFixed(2))));
+  const zoomOut = () => setZoomLevel((value) => Math.max(0.5, Number((value - 0.1).toFixed(2))));
+
   const exportFields = (): TemplateField[] => {
     const canvas = fabricCanvasRef.current;
     if (!canvas) {
@@ -382,8 +436,7 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
     }
   };
 
-  const saveTemplate = async (event: FormEvent) => {
-    event.preventDefault();
+  const saveTemplate = async () => {
     setMessage(null);
     setIsSaving(true);
 
@@ -427,126 +480,103 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
   };
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
-      <section className="swiss-section p-4">
-        <div className="mb-3 flex flex-wrap gap-2">
-          <button className="swiss-btn-ghost" onClick={addTextField} type="button">
-            Add text
-          </button>
-          <button className="swiss-btn-ghost" onClick={() => addShapeField("image")} type="button">
-            Add image
-          </button>
-          <button className="swiss-btn-ghost" onClick={() => addShapeField("qr")} type="button">
-            Add QR
-          </button>
-        </div>
-        <div ref={canvasContainerRef} className="swiss-grid-bg overflow-auto border border-zinc-300 p-2">
-          <canvas ref={canvasRef} />
-        </div>
-      </section>
+    <div className="space-y-3">
+      <EditorToolbar
+        name={name}
+        setName={setName}
+        onSave={saveTemplate}
+        onPreviewToggle={() => setPreviewState(!previewMode)}
+        previewMode={previewMode}
+        busy={isSaving}
+      />
 
-      <form className="swiss-section space-y-3 p-4" onSubmit={saveTemplate}>
-        <p className="swiss-kicker">Template setup</p>
-        <h2 className="text-base font-semibold text-zinc-900">Canvas settings</h2>
-        <input
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          required
-          placeholder="Template name"
-          className="swiss-input"
+      <div className="grid gap-3 xl:grid-cols-[280px_1fr_320px]">
+        <div className="hidden xl:block">
+          <EditorSidebar
+            width={width}
+            height={height}
+            setWidth={setWidth}
+            setHeight={setHeight}
+            backgroundUrl={backgroundUrl}
+            setBackgroundUrl={setBackgroundUrl}
+            setBackgroundFile={setBackgroundFile}
+            addTextField={addTextField}
+            addImageField={() => addShapeField("image")}
+            addQrField={() => addShapeField("qr")}
+          />
+        </div>
+
+        <CanvasArea
+          canvasContainerRef={canvasContainerRef}
+          canvasRef={canvasRef}
+          zoomPercent={Math.round(zoomLevel * 100)}
+          onZoomIn={zoomIn}
+          onZoomOut={zoomOut}
+          showGrid={showGrid}
+          onGridToggle={() => {
+            setShowGrid((value) => !value);
+            setSnapToGrid((value) => !value);
+          }}
         />
-        <div className="grid grid-cols-2 gap-2">
-          <input
-            type="number"
-            min={100}
-            value={width}
-            onChange={(event) => setWidth(Number(event.target.value))}
-            className="swiss-input"
-            placeholder="Width"
-          />
-          <input
-            type="number"
-            min={100}
-            value={height}
-            onChange={(event) => setHeight(Number(event.target.value))}
-            className="swiss-input"
-            placeholder="Height"
+
+        <div className="hidden xl:block">
+          <EditorPropertiesPanel
+            selectedObject={selectedObject}
+            fieldName={fieldName}
+            setFieldName={setFieldName}
+            fontSize={fontSize}
+            setFontSize={setFontSize}
+            color={color}
+            setColor={setColor}
+            align={align}
+            setAlign={setAlign}
+            applySelectedChanges={applySelectedChanges}
+            removeSelectedField={removeSelectedField}
           />
         </div>
-        <input
-          value={backgroundUrl}
-          onChange={(event) => setBackgroundUrl(event.target.value)}
-          placeholder="Optional background URL"
-          className="swiss-input"
+      </div>
+
+      <div className="flex gap-2 xl:hidden">
+        <Button type="button" fullWidth onClick={() => setShowSidebarModal(true)}>
+          Open sidebar
+        </Button>
+        <Button type="button" fullWidth onClick={() => setShowPropertiesModal(true)}>
+          Open properties
+        </Button>
+      </div>
+
+      <Modal open={showSidebarModal} onClose={() => setShowSidebarModal(false)} title="Editor controls">
+        <EditorSidebar
+          width={width}
+          height={height}
+          setWidth={setWidth}
+          setHeight={setHeight}
+          backgroundUrl={backgroundUrl}
+          setBackgroundUrl={setBackgroundUrl}
+          setBackgroundFile={setBackgroundFile}
+          addTextField={addTextField}
+          addImageField={() => addShapeField("image")}
+          addQrField={() => addShapeField("qr")}
         />
-        <label className="block text-xs text-zinc-600">
-          Optional background image file
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(event) => setBackgroundFile(event.target.files?.[0] ?? null)}
-            className="swiss-file mt-1"
-          />
-        </label>
+      </Modal>
 
-        <div className="border border-zinc-300 p-3">
-          <h3 className="text-sm font-semibold text-zinc-900">Selected field</h3>
-          {selectedObject ? (
-            <div className="mt-2 space-y-2">
-              <input
-                value={fieldName}
-                onChange={(event) => setFieldName(event.target.value)}
-                className="swiss-input"
-              />
-              {selectedObject.type === "textbox" ? (
-                <>
-                  <input
-                    type="number"
-                    min={8}
-                    value={fontSize}
-                    onChange={(event) => setFontSize(Number(event.target.value))}
-                    className="swiss-input"
-                  />
-                  <input
-                    type="color"
-                    value={color}
-                    onChange={(event) => setColor(event.target.value)}
-                    className="h-10 w-full border border-zinc-300"
-                  />
-                  <select
-                    value={align}
-                    onChange={(event) => setAlign(event.target.value as "left" | "center" | "right")}
-                    className="swiss-select"
-                  >
-                    <option value="left">Left</option>
-                    <option value="center">Center</option>
-                    <option value="right">Right</option>
-                  </select>
-                </>
-              ) : null}
-              <div className="flex gap-2">
-                <button type="button" onClick={applySelectedChanges} className="swiss-btn-ghost">
-                  Apply field changes
-                </button>
-                <button type="button" onClick={removeSelectedField} className="swiss-btn-ghost">
-                  Remove field
-                </button>
-              </div>
-            </div>
-          ) : (
-            <p className="mt-2 text-xs text-zinc-500">Select any field on canvas to edit properties.</p>
-          )}
-        </div>
+      <Modal open={showPropertiesModal} onClose={() => setShowPropertiesModal(false)} title="Selected element">
+        <EditorPropertiesPanel
+          selectedObject={selectedObject}
+          fieldName={fieldName}
+          setFieldName={setFieldName}
+          fontSize={fontSize}
+          setFontSize={setFontSize}
+          color={color}
+          setColor={setColor}
+          align={align}
+          setAlign={setAlign}
+          applySelectedChanges={applySelectedChanges}
+          removeSelectedField={removeSelectedField}
+        />
+      </Modal>
 
-        <button
-          type="submit"
-          disabled={isSaving}
-          className="swiss-btn w-full"
-        >
-          {isSaving ? "Saving..." : "Save template"}
-        </button>
-        {message ? <p className="text-sm text-zinc-700">{message}</p> : null}
-      </form>
+      <Toast message={message} />
     </div>
   );
 };
