@@ -16,8 +16,8 @@ export const metadata: Metadata = {
   title: "QuicKards",
   description: "Bulk ID card generation platform",
   icons: {
-    icon: "/quickards_favicon.png",
-    shortcut: "/quickards_favicon.png",
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
     apple: "/quickards_favicon.png",
   },
 };
