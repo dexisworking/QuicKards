@@ -35,6 +35,8 @@ const creditsLinks = [
   { label: "Coffee", href: "https://buymeacoffee.com/dexisworking" },
 ];
 
+const creditsOwner = "© 2026 Dibyanshu Sekhar";
+
 export default async function Home() {
   const current = await getCurrentUser();
 
@@ -87,11 +89,9 @@ export default async function Home() {
         <section className="swiss-container pb-8">
           <article className="swiss-section p-5">
             <p className="swiss-kicker">Credits</p>
-            <p className="mt-2 text-sm text-zinc-600">
-              Built by Dibyanshu Sekhar. Inspired by the visual system from{" "}
-              <a href="https://iamdex.codes/" target="_blank" rel="noreferrer" className="underline">
-                iamdex.codes
-              </a>.
+            <p className="mt-2 inline-flex items-center gap-2 text-xs text-zinc-600">
+              <Image src="/quickards_favicon.png" alt="QuicKards favicon" width={12} height={12} className="h-3 w-3 rounded-sm" />
+              {creditsOwner}
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               {creditsLinks.map((link) => (
@@ -112,8 +112,8 @@ export default async function Home() {
         <footer className="border-t border-zinc-300">
           <div className="swiss-container flex flex-col gap-3 py-5 text-xs text-zinc-600 sm:flex-row sm:items-center sm:justify-between">
             <span className="inline-flex items-center gap-2">
-              <Image src="/quickards_favicon.png" alt="QuicKards logo" width={12} height={12} className="h-3 w-3 rounded-sm" />
-              © 2026 Dibyanshu Sekhar
+              <Image src="/quickards_favicon.png" alt="QuicKards favicon" width={12} height={12} className="h-3 w-3 rounded-sm" />
+              {creditsOwner}
             </span>
             <div className="flex flex-wrap items-center gap-3">
               {creditsLinks.map((link) => (
@@ -223,8 +223,8 @@ export default async function Home() {
       <footer className="border-t border-zinc-300">
         <div className="swiss-container flex flex-col gap-3 py-5 text-xs text-zinc-600 sm:flex-row sm:items-center sm:justify-between">
           <span className="inline-flex items-center gap-2">
-            <Image src="/quickards_favicon.png" alt="QuicKards logo" width={12} height={12} className="h-3 w-3 rounded-sm" />
-            © 2026 Dibyanshu Sekhar
+            <Image src="/quickards_favicon.png" alt="QuicKards favicon" width={12} height={12} className="h-3 w-3 rounded-sm" />
+            {creditsOwner}
           </span>
           <div className="flex flex-wrap items-center gap-3">
             {creditsLinks.map((link) => (
