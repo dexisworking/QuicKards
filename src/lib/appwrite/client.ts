@@ -19,6 +19,16 @@ export const getAppwriteAdminServices = () => {
   };
 };
 
+export const getAppwriteSessionServices = (sessionSecret: string) => {
+  const client = createBaseClient().setSession(sessionSecret);
+
+  return {
+    client,
+    databases: new Databases(client),
+    storage: new Storage(client),
+  };
+};
+
 export const getAppwriteAccountService = () => {
   return new Account(createBaseClient());
 };

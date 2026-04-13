@@ -19,21 +19,25 @@ npm install
 
 2. Copy `.env.example` to `.env.local` and fill your Appwrite values.
 
-3. In Appwrite, create:
+3. Create an Appwrite API key with scopes:
+   - `databases.read`, `databases.write`
+   - `collections.read`, `collections.write`
+   - `attributes.read`, `attributes.write`
+   - `indexes.read`, `indexes.write`
+   - `buckets.read`, `buckets.write`
+   - `files.read`, `files.write`
 
-1. Database with ID in `APPWRITE_DATABASE_ID`
-2. Collections:
-   - `templates`
-   - `projects`
-   - `card_data`
-   - `assets`
-   - `jobs`
-3. Buckets:
-   - `templates`
-   - `images`
-   - `outputs`
+4. Bootstrap resources from your local env:
 
-4. Start app:
+```bash
+node --env-file=.env.local ./scripts/setup-appwrite.mjs
+```
+
+This creates/updates the database resources used by QuicKards:
+- Collections: `templates`, `projects`, `card_data`, `assets`, `jobs`
+- Buckets: `templates`, `images`, `outputs`
+
+5. Start app:
 
 ```bash
 npm run dev

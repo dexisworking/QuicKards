@@ -69,7 +69,29 @@ const waitForAttributes = async (collectionId, keys) => {
 };
 
 const ensureDatabase = async () => {
-  await ignoreConflict(() => databases.create(databaseId, "QuicKards"));
+  try {
+    await databases.get(databaseId);
+    return;
+  } catch (error) {
+    if (!(error instanceof AppwriteException) || error.code !== 404) {
+      throw error;
+    }
+  }
+
+  try {
+    await ignoreConflict(() => databases.create(databaseId, "QuicKards"));
+  } catch (error) {
+    if (
+      error instanceof AppwriteException &&
+      error.code === 403 &&
+      error.type === "additional_resource_not_allowed"
+    ) {
+      // Free-plan projects can hit database-count limits; continue if the provided DB exists.
+      await databases.get(databaseId);
+      return;
+    }
+    throw error;
+  }
 };
 
 const ensureCollection = async (collectionId, name) => {
@@ -172,6 +194,16 @@ const main = async () => {
 };
 
 main().catch((error) => {
+  if (error instanceof AppwriteException && error.type === "general_unauthorized_scope") {
+    console.error(
+      [
+        "Appwrite API key is missing required scopes for bootstrap.",
+        "Required scopes: databases.read, databases.write, collections.read, collections.write,",
+        "attributes.read, attributes.write, indexes.read, indexes.write, buckets.read, buckets.write,",
+        "files.read, files.write.",
+      ].join("\n"),
+    );
+  }
   console.error(error);
   process.exit(1);
 });

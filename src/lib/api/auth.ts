@@ -1,7 +1,7 @@
 import type { Account, Databases, Models, Storage } from "node-appwrite";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { getAppwriteAdminServices, getAppwriteSessionAccountService } from "@/lib/appwrite/client";
+import { getAppwriteSessionAccountService, getAppwriteSessionServices } from "@/lib/appwrite/client";
 import { jsonError } from "@/lib/api/response";
 import { serverEnv } from "@/lib/env/server";
 
@@ -72,7 +72,7 @@ export const requireUser = async (): Promise<
     };
   }
 
-  const { databases, storage } = getAppwriteAdminServices();
+  const { databases, storage } = getAppwriteSessionServices(current.sessionSecret);
   return {
     user: current.user,
     account: current.account,

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { TemplateEditor } from "@/components/template/template-editor";
 import { getCurrentUser } from "@/lib/api/auth";
-import { getAppwriteAdminServices } from "@/lib/appwrite/client";
+import { getAppwriteSessionServices } from "@/lib/appwrite/client";
 import { appwriteCollections } from "@/lib/appwrite/collections";
 import { toTemplateRecord } from "@/lib/appwrite/records";
 import { serverEnv } from "@/lib/env/server";
@@ -15,11 +15,11 @@ export default async function EditTemplatePage(context: PageContext) {
   const { id } = await context.params;
   const current = await getCurrentUser();
 
-  if (!current.user) {
+  if (!current.user || !current.sessionSecret) {
     redirect("/");
   }
 
-  const { databases } = getAppwriteAdminServices();
+  const { databases } = getAppwriteSessionServices(current.sessionSecret);
 
   let template;
   try {

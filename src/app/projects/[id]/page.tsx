@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { Query } from "node-appwrite";
 import { ProjectWorkspace, type ProjectPayload } from "@/components/projects/project-workspace";
 import { getCurrentUser } from "@/lib/api/auth";
-import { getAppwriteAdminServices } from "@/lib/appwrite/client";
+import { getAppwriteSessionServices } from "@/lib/appwrite/client";
 import { appwriteCollections } from "@/lib/appwrite/collections";
 import { toAssetRecord, toCardDataRecord, toJobRecord, toProjectRecord } from "@/lib/appwrite/records";
 import { serverEnv } from "@/lib/env/server";
@@ -16,11 +16,11 @@ export default async function ProjectPage(context: PageContext) {
   const { id } = await context.params;
   const current = await getCurrentUser();
 
-  if (!current.user) {
+  if (!current.user || !current.sessionSecret) {
     redirect("/");
   }
 
-  const { databases } = getAppwriteAdminServices();
+  const { databases } = getAppwriteSessionServices(current.sessionSecret);
 
   let project;
   try {

@@ -4,7 +4,7 @@ import { AuthPanel } from "@/components/auth/auth-panel";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { CreateProjectForm } from "@/components/projects/create-project-form";
 import { getCurrentUser } from "@/lib/api/auth";
-import { getAppwriteAdminServices } from "@/lib/appwrite/client";
+import { getAppwriteSessionServices } from "@/lib/appwrite/client";
 import { appwriteCollections } from "@/lib/appwrite/collections";
 import { toProjectRecord, toTemplateRecord } from "@/lib/appwrite/records";
 import { serverEnv } from "@/lib/env/server";
@@ -12,7 +12,7 @@ import { serverEnv } from "@/lib/env/server";
 export default async function Home() {
   const current = await getCurrentUser();
 
-  if (!current.user) {
+  if (!current.user || !current.sessionSecret) {
     return (
       <main className="min-h-screen bg-zinc-100 p-6 flex items-center justify-center">
         <AuthPanel />
@@ -20,7 +20,7 @@ export default async function Home() {
     );
   }
 
-  const { databases } = getAppwriteAdminServices();
+  const { databases } = getAppwriteSessionServices(current.sessionSecret);
 
   const [templatesResult, projectsResult] = await Promise.all([
     databases.listDocuments(serverEnv.appwriteDatabaseId, appwriteCollections.templates, [

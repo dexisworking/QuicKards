@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { Query } from "node-appwrite";
 import { CreateProjectForm } from "@/components/projects/create-project-form";
 import { getCurrentUser } from "@/lib/api/auth";
-import { getAppwriteAdminServices } from "@/lib/appwrite/client";
+import { getAppwriteSessionServices } from "@/lib/appwrite/client";
 import { appwriteCollections } from "@/lib/appwrite/collections";
 import { toTemplateRecord } from "@/lib/appwrite/records";
 import { serverEnv } from "@/lib/env/server";
@@ -11,11 +11,11 @@ import { serverEnv } from "@/lib/env/server";
 export default async function NewProjectPage() {
   const current = await getCurrentUser();
 
-  if (!current.user) {
+  if (!current.user || !current.sessionSecret) {
     redirect("/");
   }
 
-  const { databases } = getAppwriteAdminServices();
+  const { databases } = getAppwriteSessionServices(current.sessionSecret);
   const templates = await databases.listDocuments(serverEnv.appwriteDatabaseId, appwriteCollections.templates, [
     Query.equal("userId", current.user.$id),
     Query.orderDesc("$createdAt"),
