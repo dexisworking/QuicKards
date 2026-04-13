@@ -20,10 +20,12 @@ npm install
 2. Copy `.env.example` to `.env.local` and fill your Appwrite values.
 
 3. Create an Appwrite API key with scopes:
+   - `users.read`, `users.write`, `sessions.write`
    - `databases.read`, `databases.write`
-   - `collections.read`, `collections.write`
-   - `attributes.read`, `attributes.write`
+   - `tables.read`, `tables.write`
+   - `columns.read`, `columns.write`
    - `indexes.read`, `indexes.write`
+   - `rows.read`, `rows.write`
    - `buckets.read`, `buckets.write`
    - `files.read`, `files.write`
 

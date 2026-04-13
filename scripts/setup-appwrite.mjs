@@ -198,9 +198,11 @@ main().catch((error) => {
     console.error(
       [
         "Appwrite API key is missing required scopes for bootstrap.",
-        "Required scopes: databases.read, databases.write, collections.read, collections.write,",
-        "attributes.read, attributes.write, indexes.read, indexes.write, buckets.read, buckets.write,",
-        "files.read, files.write.",
+        "Required scopes: databases.read, databases.write, tables.read, tables.write, columns.read,",
+        "columns.write, indexes.read, indexes.write, rows.read, rows.write, buckets.read,",
+        "buckets.write, files.read, files.write, users.read, users.write, sessions.write.",
+        "If Appwrite reports legacy 'collections.write' or 'attributes.write', grant the modern",
+        "table/column scopes above (legacy Databases APIs map to those permissions).",
       ].join("\n"),
     );
   }
