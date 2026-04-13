@@ -1,36 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# QuicKards
 
-## Getting Started
+QuicKards is a full-stack SaaS MVP for bulk ID card generation using Appwrite + Next.js.
 
-First, run the development server:
+## Stack
+
+- Next.js (App Router) + React + Tailwind CSS
+- Appwrite (Auth + Databases + Storage)
+- API routes under `src/app/api/v1`
+- Server-side rendering engine with `sharp`, `pdf-lib`, and `archiver`
+
+## Setup
+
+1. Install dependencies:
+
+```bash
+npm install
+```
+
+2. Copy `.env.example` to `.env.local` and fill your Appwrite values.
+
+3. In Appwrite, create:
+
+1. Database with ID in `APPWRITE_DATABASE_ID`
+2. Collections:
+   - `templates`
+   - `projects`
+   - `card_data`
+   - `assets`
+   - `jobs`
+3. Buckets:
+   - `templates`
+   - `images`
+   - `outputs`
+
+4. Start app:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## API surface
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Base path: `/api/v1`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Auth: `POST /auth/signin`, `POST /auth/signup`, `POST /auth/signout`, `GET /auth/me`
+- Templates: `POST/GET /templates`, `GET/PATCH/DELETE /templates/:id`, `POST /templates/:id/background`
+- Projects: `POST/GET /projects`, `GET /projects/:id`
+- CSV: `POST/GET /projects/:id/data`
+- Images: `POST /projects/:id/images/zip`, `POST /projects/:id/images`, `GET /projects/:id/images/:card_id`
+- Rendering: `POST /projects/:id/preview`, `POST /projects/:id/render`, `GET /jobs/:job_id`
+- Downloads: `GET /downloads/:file_id`
 
-## Learn More
+## Notes
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Rendering is server-side only.
+- Output ZIP file IDs are stored in jobs and streamed through `/api/v1/downloads/:file_id`.
+- For Appwrite security, keep collections and buckets private; this app enforces user access in API handlers.
