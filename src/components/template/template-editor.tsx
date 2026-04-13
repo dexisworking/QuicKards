@@ -36,6 +36,26 @@ type FieldMeta = {
 };
 
 const PX_PER_INCH = 300;
+const COLOR_FALLBACK = "#111111";
+
+const toHexColor = (value: unknown, fallback = COLOR_FALLBACK): string => {
+  if (typeof value !== "string") {
+    return fallback;
+  }
+  const raw = value.trim();
+  if (/^#[0-9a-fA-F]{6}$/.test(raw)) {
+    return raw;
+  }
+  if (/^#[0-9a-fA-F]{3}$/.test(raw)) {
+    return `#${raw[1]}${raw[1]}${raw[2]}${raw[2]}${raw[3]}${raw[3]}`;
+  }
+  const rgbMatch = raw.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
+  if (rgbMatch) {
+    const [r, g, b] = rgbMatch.slice(1, 4).map((item) => Math.max(0, Math.min(255, Number(item))));
+    return `#${[r, g, b].map((item) => item.toString(16).padStart(2, "0")).join("")}`;
+  }
+  return fallback;
+};
 
 const extractMeta = (object: FabricObject): FieldMeta | null => {
   const value = (object as FabricObject & { quickardsMeta?: FieldMeta }).quickardsMeta;
@@ -66,6 +86,20 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
   const [fieldName, setFieldName] = useState("field_name");
   const [fontSize, setFontSize] = useState(24);
   const [color, setColor] = useState("#111111");
+  const [fontFamily, setFontFamily] = useState("Arial");
+  const [fontWeight, setFontWeight] = useState<"normal" | "bold">("normal");
+  const [fontStyle, setFontStyle] = useState<"normal" | "italic">("normal");
+  const [underline, setUnderline] = useState(false);
+  const [strokeColor, setStrokeColor] = useState("#000000");
+  const [strokeWidth, setStrokeWidth] = useState(0);
+  const [shadowColor, setShadowColor] = useState("#000000");
+  const [shadowBlur, setShadowBlur] = useState(0);
+  const [opacity, setOpacity] = useState(1);
+  const [rotation, setRotation] = useState(0);
+  const [fillColor, setFillColor] = useState("#f3f4f6");
+  const [borderColor, setBorderColor] = useState("#2563eb");
+  const [borderWidth, setBorderWidth] = useState(1);
+  const [cornerRadius, setCornerRadius] = useState(0);
   const [align, setAlign] = useState<"left" | "center" | "right">("left");
   const [message, setMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -124,13 +158,30 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
 
       setSelectedObject(selected);
       setFieldName(meta.fieldName);
+      setOpacity(Number(selected.opacity ?? 1));
+      setRotation(Math.round(selected.angle ?? 0));
 
       if (selected.type === "textbox") {
         const textObject = selected as import("fabric").fabric.Textbox;
         setFontSize(Math.round(textObject.fontSize ?? 24));
-        setColor(String(textObject.fill ?? "#111111"));
+        setColor(toHexColor(textObject.fill, "#111111"));
+        setFontFamily(String(textObject.fontFamily ?? "Arial"));
+        setFontWeight((textObject.fontWeight as "normal" | "bold") ?? "normal");
+        setFontStyle((textObject.fontStyle as "normal" | "italic") ?? "normal");
+        setUnderline(Boolean(textObject.underline ?? false));
+        setStrokeColor(toHexColor(textObject.stroke, "#000000"));
+        setStrokeWidth(Number(textObject.strokeWidth ?? 0));
+        setShadowBlur(Number((textObject.shadow as { blur?: number } | null)?.blur ?? 0));
+        setShadowColor(toHexColor((textObject.shadow as { color?: string } | null)?.color, "#000000"));
         setAlign((textObject.textAlign as "left" | "center" | "right") ?? "left");
+        return;
       }
+
+      const shapeObject = selected as import("fabric").fabric.Rect;
+      setFillColor(toHexColor(shapeObject.fill, "#f3f4f6"));
+      setBorderColor(toHexColor(shapeObject.stroke, "#2563eb"));
+      setBorderWidth(Number(shapeObject.strokeWidth ?? 1));
+      setCornerRadius(Number(shapeObject.rx ?? 0));
     };
 
     canvas.on("selection:created", updateSelection);
@@ -158,6 +209,19 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
             fill: field.color ?? "#111111",
             textAlign: field.align ?? "left",
             fontFamily: field.fontFamily ?? "Arial",
+            fontWeight: field.fontWeight ?? "normal",
+            fontStyle: field.fontStyle ?? "normal",
+            underline: field.underline ?? false,
+            stroke: field.strokeColor ?? "#000000",
+            strokeWidth: field.strokeWidth ?? 0,
+            opacity: field.opacity ?? 1,
+            angle: field.rotation ?? 0,
+            shadow: (field.shadowBlur ?? 0) > 0 ? new fabricApi.Shadow({
+              color: field.shadowColor ?? "#000000",
+              blur: field.shadowBlur ?? 0,
+              offsetX: field.shadowOffsetX ?? 0,
+              offsetY: field.shadowOffsetY ?? 0,
+            }) : undefined,
             editable: false,
           });
           setMeta(text, { fieldType: "text", fieldName: field.fieldName });
@@ -170,10 +234,14 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
           top: field.y,
           width: field.width,
           height: field.height,
-          fill: "rgba(0,0,0,0.04)",
-          stroke: "#2563eb",
+          fill: field.fillColor ?? "#f3f4f6",
+          stroke: field.borderColor ?? (field.fieldType === "image" ? "#2563eb" : "#16a34a"),
           strokeDashArray: [6, 4],
-          strokeWidth: 1,
+          strokeWidth: field.borderWidth ?? 1,
+          rx: field.cornerRadius ?? 0,
+          ry: field.cornerRadius ?? 0,
+          opacity: field.opacity ?? 1,
+          angle: field.rotation ?? 0,
         });
         setMeta(rect, { fieldType: field.fieldType, fieldName: field.fieldName });
         canvas.add(rect);
@@ -290,6 +358,13 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
       fontSize: 24,
       fill: "#111111",
       textAlign: "left",
+      fontFamily: "Arial",
+      fontWeight: "normal",
+      fontStyle: "normal",
+      underline: false,
+      stroke: "#000000",
+      strokeWidth: 0,
+      opacity: 1,
       editable: false,
     });
     setMeta(object, { fieldType: "text", fieldName: "text_field" });
@@ -308,10 +383,13 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
       top: 120,
       width: 180,
       height: fieldType === "image" ? 220 : 140,
-      fill: "rgba(0,0,0,0.04)",
+      fill: "#f3f4f6",
       stroke: fieldType === "image" ? "#2563eb" : "#16a34a",
       strokeDashArray: [6, 4],
       strokeWidth: 1,
+      opacity: 1,
+      rx: 0,
+      ry: 0,
     });
 
     setMeta(object, {
@@ -338,11 +416,39 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
 
     if (selectedObject.type === "textbox") {
       const textObject = selectedObject as import("fabric").fabric.Textbox;
+      const nextShadow = shadowBlur > 0 && fabricApi
+        ? new fabricApi.Shadow({
+          color: shadowColor,
+          blur: shadowBlur,
+          offsetX: 0,
+          offsetY: 0,
+        })
+        : undefined;
       textObject.set({
         fontSize,
         fill: color,
         text: fieldName,
         textAlign: align,
+        fontFamily,
+        fontWeight,
+        fontStyle,
+        underline,
+        stroke: strokeColor,
+        strokeWidth,
+        opacity,
+        angle: rotation,
+        shadow: nextShadow,
+      });
+    } else {
+      const shapeObject = selectedObject as import("fabric").fabric.Rect;
+      shapeObject.set({
+        fill: fillColor,
+        stroke: borderColor,
+        strokeWidth: borderWidth,
+        rx: cornerRadius,
+        ry: cornerRadius,
+        opacity,
+        angle: rotation,
       });
     }
 
@@ -372,11 +478,11 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
       if (object.type === "textbox") {
         const textObject = object as import("fabric").fabric.Textbox;
         textObject.set({ text: enabled ? `Sample ${meta.fieldName}` : meta.fieldName });
-      } else if (object.type === "rect") {
-        object.set({
-          fill: enabled ? "rgba(99,102,241,0.18)" : "rgba(0,0,0,0.04)",
-        });
-      }
+        } else if (object.type === "rect") {
+          object.set({
+            fill: enabled ? "#c7d2fe" : "#f3f4f6",
+          });
+        }
     });
     setPreviewMode(enabled);
     canvas.renderAll();
@@ -436,7 +542,24 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
           base.color = String(textbox.fill ?? "#111111");
           base.align = (textbox.textAlign as "left" | "center" | "right") ?? "left";
           base.fontFamily = textbox.fontFamily ?? "Arial";
+          base.fontWeight = (textbox.fontWeight as "normal" | "bold") ?? "normal";
+          base.fontStyle = (textbox.fontStyle as "normal" | "italic") ?? "normal";
+          base.underline = Boolean(textbox.underline ?? false);
+          base.strokeColor = String(textbox.stroke ?? "#000000");
+          base.strokeWidth = Number(textbox.strokeWidth ?? 0);
+          base.shadowColor = String((textbox.shadow as { color?: string } | null)?.color ?? "#000000");
+          base.shadowBlur = Number((textbox.shadow as { blur?: number } | null)?.blur ?? 0);
+          base.shadowOffsetX = Number((textbox.shadow as { offsetX?: number } | null)?.offsetX ?? 0);
+          base.shadowOffsetY = Number((textbox.shadow as { offsetY?: number } | null)?.offsetY ?? 0);
+        } else {
+          const shapeObject = object as import("fabric").fabric.Rect;
+          base.fillColor = String(shapeObject.fill ?? "rgba(0,0,0,0.04)");
+          base.borderColor = String(shapeObject.stroke ?? "#2563eb");
+          base.borderWidth = Number(shapeObject.strokeWidth ?? 1);
+          base.cornerRadius = Number(shapeObject.rx ?? 0);
         }
+        base.opacity = Number(object.opacity ?? 1);
+        base.rotation = Number(object.angle ?? 0);
 
         return base;
       })
@@ -581,8 +704,36 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
             setFontSize={setFontSize}
             color={color}
             setColor={setColor}
+            fontFamily={fontFamily}
+            setFontFamily={setFontFamily}
+            fontWeight={fontWeight}
+            setFontWeight={setFontWeight}
+            fontStyle={fontStyle}
+            setFontStyle={setFontStyle}
+            underline={underline}
+            setUnderline={setUnderline}
+            strokeColor={strokeColor}
+            setStrokeColor={setStrokeColor}
+            strokeWidth={strokeWidth}
+            setStrokeWidth={setStrokeWidth}
+            shadowColor={shadowColor}
+            setShadowColor={setShadowColor}
+            shadowBlur={shadowBlur}
+            setShadowBlur={setShadowBlur}
             align={align}
             setAlign={setAlign}
+            opacity={opacity}
+            setOpacity={setOpacity}
+            rotation={rotation}
+            setRotation={setRotation}
+            fillColor={fillColor}
+            setFillColor={setFillColor}
+            borderColor={borderColor}
+            setBorderColor={setBorderColor}
+            borderWidth={borderWidth}
+            setBorderWidth={setBorderWidth}
+            cornerRadius={cornerRadius}
+            setCornerRadius={setCornerRadius}
             applySelectedChanges={applySelectedChanges}
             removeSelectedField={removeSelectedField}
           />
@@ -634,8 +785,36 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
           setFontSize={setFontSize}
           color={color}
           setColor={setColor}
+          fontFamily={fontFamily}
+          setFontFamily={setFontFamily}
+          fontWeight={fontWeight}
+          setFontWeight={setFontWeight}
+          fontStyle={fontStyle}
+          setFontStyle={setFontStyle}
+          underline={underline}
+          setUnderline={setUnderline}
+          strokeColor={strokeColor}
+          setStrokeColor={setStrokeColor}
+          strokeWidth={strokeWidth}
+          setStrokeWidth={setStrokeWidth}
+          shadowColor={shadowColor}
+          setShadowColor={setShadowColor}
+          shadowBlur={shadowBlur}
+          setShadowBlur={setShadowBlur}
           align={align}
           setAlign={setAlign}
+          opacity={opacity}
+          setOpacity={setOpacity}
+          rotation={rotation}
+          setRotation={setRotation}
+          fillColor={fillColor}
+          setFillColor={setFillColor}
+          borderColor={borderColor}
+          setBorderColor={setBorderColor}
+          borderWidth={borderWidth}
+          setBorderWidth={setBorderWidth}
+          cornerRadius={cornerRadius}
+          setCornerRadius={setCornerRadius}
           applySelectedChanges={applySelectedChanges}
           removeSelectedField={removeSelectedField}
         />

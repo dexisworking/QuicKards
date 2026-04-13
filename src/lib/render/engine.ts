@@ -25,6 +25,23 @@ const escapeXml = (value: string): string =>
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&apos;");
 
+const normalizeKey = (value: string): string => value.trim().toLowerCase().replaceAll(/[\s_-]+/g, "");
+
+const getRowValue = (data: Record<string, string>, fieldName: string): string => {
+  const direct = data[fieldName];
+  if (typeof direct === "string") {
+    return direct;
+  }
+  const fieldKey = normalizeKey(fieldName);
+  const entry = Object.entries(data).find(([key]) => normalizeKey(key) === fieldKey);
+  return entry?.[1] ?? "";
+};
+
+const resolveFontStack = (fontFamily?: string): string => {
+  const primary = (fontFamily ?? "Noto Sans").trim();
+  return `${primary}, Noto Sans, DejaVu Sans, Liberation Sans, Arial Unicode MS, sans-serif`;
+};
+
 const textSvg = (field: TemplateField, text: string): Buffer => {
   const width = Math.max(1, Math.round(field.width));
   const height = Math.max(1, Math.round(field.height));
@@ -35,15 +52,27 @@ const textSvg = (field: TemplateField, text: string): Buffer => {
   const x = align === "center" ? width / 2 : align === "right" ? width - 2 : 2;
   const y = Math.min(height - 2, Math.max(fontSize, Math.round(height / 2 + fontSize / 3)));
   const content = escapeXml(text);
+  const shadowEnabled = (field.shadowBlur ?? 0) > 0;
+  const shadowId = `s-${field.id}`;
+  const opacity = Math.min(1, Math.max(0, field.opacity ?? 1));
 
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" xml:space="preserve">
+  ${shadowEnabled ? `<defs><filter id="${shadowId}" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="${field.shadowOffsetX ?? 0}" dy="${field.shadowOffsetY ?? 0}" stdDeviation="${field.shadowBlur ?? 0}" flood-color="${escapeXml(field.shadowColor ?? "#000000")}" /></filter></defs>` : ""}
   <text
     x="${x}"
     y="${y}"
     text-anchor="${anchor}"
     fill="${color}"
+    fill-opacity="${opacity}"
     font-size="${fontSize}"
-    font-family="${escapeXml(field.fontFamily ?? "Arial")}"
+    font-family="${escapeXml(resolveFontStack(field.fontFamily))}"
+    font-weight="${escapeXml(field.fontWeight ?? "normal")}"
+    font-style="${escapeXml(field.fontStyle ?? "normal")}"
+    text-decoration="${field.underline ? "underline" : "none"}"
+    stroke="${escapeXml(field.strokeColor ?? "transparent")}"
+    stroke-width="${Math.max(0, field.strokeWidth ?? 0)}"
+    paint-order="stroke"
+    filter="${shadowEnabled ? `url(#${shadowId})` : "none"}"
   >${content}</text>
 </svg>`;
 
@@ -57,6 +86,22 @@ const renderTextField = async (field: TemplateField, text: string): Promise<Buff
 const renderQrField = async (field: TemplateField, text: string): Promise<Buffer> => {
   const width = Math.max(64, Math.round(field.width));
   return QRCode.toBuffer(text, { width, margin: 0 });
+};
+
+const applyRoundedMask = async (image: Buffer, width: number, height: number, radius: number): Promise<Buffer> => {
+  if (radius <= 0) {
+    return image;
+  }
+  const maskSvg = Buffer.from(
+    `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg"><rect x="0" y="0" width="${width}" height="${height}" rx="${radius}" ry="${radius}" fill="white"/></svg>`,
+  );
+  return sharp(image).composite([{ input: maskSvg, blend: "dest-in" }]).png().toBuffer();
+};
+
+const makeBorderOverlay = (width: number, height: number, radius: number, color: string, strokeWidth: number): Buffer => {
+  return Buffer.from(
+    `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg"><rect x="${strokeWidth / 2}" y="${strokeWidth / 2}" width="${Math.max(1, width - strokeWidth)}" height="${Math.max(1, height - strokeWidth)}" rx="${Math.max(0, radius - strokeWidth / 2)}" ry="${Math.max(0, radius - strokeWidth / 2)}" fill="none" stroke="${escapeXml(color)}" stroke-width="${strokeWidth}" /></svg>`,
+  );
 };
 
 export const renderCardPng = async (context: RenderContext): Promise<Buffer> => {
@@ -73,7 +118,7 @@ export const renderCardPng = async (context: RenderContext): Promise<Buffer> => 
   for (const field of template.fields) {
     const top = Math.max(0, Math.round(field.y));
     const left = Math.max(0, Math.round(field.x));
-    const value = row.data[field.fieldName] ?? row.data[field.fieldName.toLowerCase()] ?? "";
+    const value = getRowValue(row.data, field.fieldName);
 
     if (field.fieldType === "text") {
       const image = await renderTextField(field, value);
@@ -82,21 +127,41 @@ export const renderCardPng = async (context: RenderContext): Promise<Buffer> => 
     }
 
     if (field.fieldType === "image" && imageBuffer) {
+      const targetWidth = Math.max(1, Math.round(field.width));
+      const targetHeight = Math.max(1, Math.round(field.height));
       const image = await sharp(imageBuffer)
-        .resize({ width: Math.max(1, Math.round(field.width)), height: Math.max(1, Math.round(field.height)), fit: "cover" })
+        .resize({ width: targetWidth, height: targetHeight, fit: "cover" })
         .png()
         .toBuffer();
-      composites.push({ input: image, top, left });
+      const rounded = await applyRoundedMask(image, targetWidth, targetHeight, Math.max(0, field.cornerRadius ?? 0));
+      composites.push({ input: rounded, top, left });
+      if ((field.borderWidth ?? 0) > 0) {
+        composites.push({
+          input: makeBorderOverlay(targetWidth, targetHeight, Math.max(0, field.cornerRadius ?? 0), field.borderColor ?? "#2563eb", Math.max(0, field.borderWidth ?? 1)),
+          top,
+          left,
+        });
+      }
       continue;
     }
 
     if (field.fieldType === "qr") {
+      const targetWidth = Math.max(1, Math.round(field.width));
+      const targetHeight = Math.max(1, Math.round(field.height));
       const qr = await renderQrField(field, value || row.card_id);
       const image = await sharp(qr)
-        .resize({ width: Math.max(1, Math.round(field.width)), height: Math.max(1, Math.round(field.height)), fit: "fill" })
+        .resize({ width: targetWidth, height: targetHeight, fit: "fill" })
         .png()
         .toBuffer();
-      composites.push({ input: image, top, left });
+      const rounded = await applyRoundedMask(image, targetWidth, targetHeight, Math.max(0, field.cornerRadius ?? 0));
+      composites.push({ input: rounded, top, left });
+      if ((field.borderWidth ?? 0) > 0) {
+        composites.push({
+          input: makeBorderOverlay(targetWidth, targetHeight, Math.max(0, field.cornerRadius ?? 0), field.borderColor ?? "#16a34a", Math.max(0, field.borderWidth ?? 1)),
+          top,
+          left,
+        });
+      }
     }
   }
 

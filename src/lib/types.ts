@@ -10,10 +10,25 @@ export type TemplateField = {
   y: number;
   width: number;
   height: number;
+  opacity?: number;
+  rotation?: number;
   fontSize?: number;
   color?: string;
   align?: HorizontalAlign;
   fontFamily?: string;
+  fontWeight?: "normal" | "bold";
+  fontStyle?: "normal" | "italic";
+  underline?: boolean;
+  strokeColor?: string;
+  strokeWidth?: number;
+  shadowColor?: string;
+  shadowBlur?: number;
+  shadowOffsetX?: number;
+  shadowOffsetY?: number;
+  fillColor?: string;
+  borderColor?: string;
+  borderWidth?: number;
+  cornerRadius?: number;
 };
 
 export type TemplateDocument = {
