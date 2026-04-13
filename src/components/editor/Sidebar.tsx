@@ -40,13 +40,13 @@ export const EditorSidebar = ({
     <div className="space-y-3">
       <Card className="sticky top-20 space-y-3">
         <div className="grid grid-cols-3 gap-2">
-          <Button type="button" variant={panel === "insert" ? "primary" : "ghost"} onClick={() => setPanel("insert")} title="Insert panel">
+          <Button type="button" variant={panel === "insert" ? "primary" : "ghost"} onClick={() => setPanel("insert")} title="Insert panel" className="text-xs">
             Insert
           </Button>
-          <Button type="button" variant={panel === "layout" ? "primary" : "ghost"} onClick={() => setPanel("layout")} title="Layout panel">
+          <Button type="button" variant={panel === "layout" ? "primary" : "ghost"} onClick={() => setPanel("layout")} title="Layout panel" className="text-xs">
             Layout
           </Button>
-          <Button type="button" variant={panel === "background" ? "primary" : "ghost"} onClick={() => setPanel("background")} title="Background panel">
+          <Button type="button" variant={panel === "background" ? "primary" : "ghost"} onClick={() => setPanel("background")} title="Background panel" className="text-xs">
             BG
           </Button>
         </div>
