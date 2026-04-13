@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Query } from "node-appwrite";
 import { AuthPanel } from "@/components/auth/auth-panel";
@@ -110,7 +111,10 @@ export default async function Home() {
 
         <footer className="border-t border-zinc-300">
           <div className="swiss-container flex flex-col gap-3 py-5 text-xs text-zinc-600 sm:flex-row sm:items-center sm:justify-between">
-            <span>© 2026 Dibyanshu Sekhar</span>
+            <span className="inline-flex items-center gap-2">
+              <Image src="/quickards_favicon.png" alt="QuicKards logo" width={12} height={12} className="h-3 w-3 rounded-sm" />
+              © 2026 Dibyanshu Sekhar
+            </span>
             <div className="flex flex-wrap items-center gap-3">
               {creditsLinks.map((link) => (
                 <a key={link.label} href={link.href} target="_blank" rel="noreferrer" className="uppercase tracking-wide hover:text-zinc-900">
@@ -218,7 +222,10 @@ export default async function Home() {
 
       <footer className="border-t border-zinc-300">
         <div className="swiss-container flex flex-col gap-3 py-5 text-xs text-zinc-600 sm:flex-row sm:items-center sm:justify-between">
-          <span>© 2026 Dibyanshu Sekhar</span>
+          <span className="inline-flex items-center gap-2">
+            <Image src="/quickards_favicon.png" alt="QuicKards logo" width={12} height={12} className="h-3 w-3 rounded-sm" />
+            © 2026 Dibyanshu Sekhar
+          </span>
           <div className="flex flex-wrap items-center gap-3">
             {creditsLinks.map((link) => (
               <a key={link.label} href={link.href} target="_blank" rel="noreferrer" className="uppercase tracking-wide hover:text-zinc-900">
