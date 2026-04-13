@@ -1,5 +1,6 @@
 {
   "name": "quickards",
+  "description": "Canva-style bulk ID card generator with CSV/image mapping, Appwrite backend, and server-side rendering.",
   "version": "0.1.0",
   "private": true,
   "scripts": {
