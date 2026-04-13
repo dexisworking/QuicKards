@@ -86,29 +86,6 @@ export default async function Home() {
           ))}
         </section>
 
-        <section className="swiss-container pb-8">
-          <article className="swiss-section p-5">
-            <p className="swiss-kicker">Credits</p>
-            <p className="mt-2 inline-flex items-center gap-2 text-xs text-zinc-600">
-              <Image src="/quickards_favicon.png" alt="QuicKards favicon" width={12} height={12} className="h-3 w-3 rounded-sm" />
-              {creditsOwner}
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {creditsLinks.map((link) => (
-                <a
-                  key={link.label}
-                  href={link.href}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="border border-zinc-300 bg-white px-3 py-1 text-xs uppercase tracking-wide text-zinc-600 hover:text-zinc-900"
-                >
-                  {link.label}
-                </a>
-              ))}
-            </div>
-          </article>
-        </section>
-
         <footer className="border-t border-zinc-300">
           <div className="swiss-container flex flex-col gap-3 py-5 text-xs text-zinc-600 sm:flex-row sm:items-center sm:justify-between">
             <span className="inline-flex items-center gap-2">
