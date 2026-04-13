@@ -15,6 +15,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "QuicKards",
   description: "Bulk ID card generation platform",
+  icons: {
+    icon: "/quickards_favicon.png",
+    shortcut: "/quickards_favicon.png",
+    apple: "/quickards_favicon.png",
+  },
 };
 
 export default function RootLayout({
