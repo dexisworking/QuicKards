@@ -45,18 +45,20 @@ export const CanvasArea = ({
           <Grid3X3 className="h-4 w-4" />
         </Button>
       </div>
-      <motion.div
-        ref={canvasContainerRef}
-        className={
-          showGrid
-            ? "swiss-grid-bg overflow-auto rounded-2xl border border-zinc-300 p-1 sm:p-2"
-            : "overflow-auto rounded-2xl border border-zinc-300 p-1 sm:p-2"
-        }
-        initial={{ opacity: 0.9 }}
-        animate={{ opacity: 1 }}
-      >
-        <canvas ref={canvasRef} />
-      </motion.div>
+      <div className="rounded-2xl border border-zinc-300 bg-zinc-100/70 p-2 sm:p-4">
+        <motion.div
+          ref={canvasContainerRef}
+          className={
+            showGrid
+              ? "swiss-grid-bg overflow-auto rounded-xl border border-zinc-300 bg-white p-1 sm:p-2"
+              : "overflow-auto rounded-xl border border-zinc-300 bg-white p-1 sm:p-2"
+          }
+          initial={{ opacity: 0.9 }}
+          animate={{ opacity: 1 }}
+        >
+          <canvas ref={canvasRef} />
+        </motion.div>
+      </div>
     </Card>
   );
 };

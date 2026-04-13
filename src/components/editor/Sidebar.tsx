@@ -31,9 +31,9 @@ export const EditorSidebar = ({
 }: SidebarProps) => {
   return (
     <div className="space-y-3">
-      <Card>
+      <Card className="sticky top-20">
         <p className="swiss-kicker">Insert fields</p>
-        <div className="mt-2 space-y-2">
+        <div className="mt-3 grid grid-cols-1 gap-2">
           <Button type="button" fullWidth onClick={addTextField} title="Add text field">
             <Type className="mr-2 h-4 w-4" /> Add text field
           </Button>
@@ -48,7 +48,7 @@ export const EditorSidebar = ({
 
       <Card>
         <p className="swiss-kicker">Template settings</p>
-        <div className="mt-2 grid grid-cols-2 gap-2">
+        <div className="mt-3 grid grid-cols-2 gap-2">
           <input
             className="swiss-input"
             type="number"
@@ -76,7 +76,7 @@ export const EditorSidebar = ({
           value={backgroundUrl}
           onChange={(event) => setBackgroundUrl(event.target.value)}
           placeholder="Image URL"
-          className="swiss-input mt-2"
+          className="swiss-input mt-3"
         />
         <input className="swiss-file mt-2" type="file" accept="image/*" onChange={(event) => setBackgroundFile(event.target.files?.[0] ?? null)} />
       </Card>

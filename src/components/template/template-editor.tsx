@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { SlidersHorizontal, Wrench } from "lucide-react";
+import { ImageIcon, QrCode, Settings2, SlidersHorizontal, Type, Wrench } from "lucide-react";
 import { CanvasArea } from "@/components/editor/CanvasArea";
 import { EditorPropertiesPanel } from "@/components/editor/PropertiesPanel";
 import { EditorSidebar } from "@/components/editor/Sidebar";
@@ -72,6 +72,7 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
   const [previewMode, setPreviewMode] = useState(false);
   const [showSidebarModal, setShowSidebarModal] = useState(false);
   const [showPropertiesModal, setShowPropertiesModal] = useState(false);
+  const [showDesktopSettings, setShowDesktopSettings] = useState(true);
   const [snapToGrid, setSnapToGrid] = useState(true);
   const snapRef = useRef(true);
 
@@ -485,26 +486,52 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
       <EditorToolbar
         name={name}
         setName={setName}
+        width={width}
+        height={height}
         onSave={saveTemplate}
         onPreviewToggle={() => setPreviewState(!previewMode)}
         previewMode={previewMode}
         busy={isSaving}
       />
 
-      <div className="grid gap-3 xl:grid-cols-[280px_1fr_320px]">
+      <div className="grid gap-3 xl:grid-cols-[72px_280px_minmax(0,1fr)_320px]">
+        <aside className="hidden xl:flex">
+          <div className="swiss-section flex h-fit w-full flex-col gap-2 p-2">
+            <Button type="button" title="Add text field" onClick={addTextField}>
+              <Type className="h-4 w-4" />
+            </Button>
+            <Button type="button" title="Add image field" onClick={() => addShapeField("image")}>
+              <ImageIcon className="h-4 w-4" />
+            </Button>
+            <Button type="button" title="Add QR field" onClick={() => addShapeField("qr")}>
+              <QrCode className="h-4 w-4" />
+            </Button>
+            <Button type="button" variant={showDesktopSettings ? "primary" : "ghost"} title="Toggle settings panel" onClick={() => setShowDesktopSettings((value) => !value)}>
+              <Settings2 className="h-4 w-4" />
+            </Button>
+          </div>
+        </aside>
+
         <div className="hidden xl:block">
-          <EditorSidebar
-            width={width}
-            height={height}
-            setWidth={setWidth}
-            setHeight={setHeight}
-            backgroundUrl={backgroundUrl}
-            setBackgroundUrl={setBackgroundUrl}
-            setBackgroundFile={setBackgroundFile}
-            addTextField={addTextField}
-            addImageField={() => addShapeField("image")}
-            addQrField={() => addShapeField("qr")}
-          />
+          {showDesktopSettings ? (
+            <EditorSidebar
+              width={width}
+              height={height}
+              setWidth={setWidth}
+              setHeight={setHeight}
+              backgroundUrl={backgroundUrl}
+              setBackgroundUrl={setBackgroundUrl}
+              setBackgroundFile={setBackgroundFile}
+              addTextField={addTextField}
+              addImageField={() => addShapeField("image")}
+              addQrField={() => addShapeField("qr")}
+            />
+          ) : (
+            <div className="swiss-section p-4">
+              <p className="swiss-kicker">Design panel hidden</p>
+              <p className="mt-2 text-sm text-zinc-600">Use the left icon rail to add elements. Click settings icon to reopen full panel.</p>
+            </div>
+          )}
         </div>
 
         <CanvasArea
@@ -537,7 +564,15 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
         </div>
       </div>
 
-      <div className="sticky bottom-3 z-30 flex gap-2 xl:hidden">
+      <div className="sticky bottom-3 z-30 grid grid-cols-2 gap-2 sm:grid-cols-4 xl:hidden">
+        <Button type="button" fullWidth onClick={addTextField}>
+          <Type className="mr-2 h-4 w-4" />
+          Text
+        </Button>
+        <Button type="button" fullWidth onClick={() => addShapeField("image")}>
+          <ImageIcon className="mr-2 h-4 w-4" />
+          Image
+        </Button>
         <Button type="button" fullWidth onClick={() => setShowSidebarModal(true)}>
           <Wrench className="mr-2 h-4 w-4" />
           Tools

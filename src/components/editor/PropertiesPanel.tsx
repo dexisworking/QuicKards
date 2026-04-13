@@ -35,20 +35,26 @@ export const EditorPropertiesPanel = ({
   removeSelectedField,
 }: PropertiesProps) => {
   return (
-    <Card className="h-full">
+    <Card className="h-full xl:sticky xl:top-20">
       <p className="swiss-kicker">Properties</p>
       {!selectedObject ? (
         <p className="mt-2 text-sm text-zinc-500">Select an element on canvas to edit its properties.</p>
       ) : (
-        <div className="mt-2 space-y-3">
-          <input className="swiss-input" value={fieldName} onChange={(event) => setFieldName(event.target.value)} />
+        <div className="mt-3 space-y-3">
+          <div>
+            <label className="text-xs text-zinc-500">Field name</label>
+            <input className="swiss-input mt-1" value={fieldName} onChange={(event) => setFieldName(event.target.value)} />
+          </div>
           {selectedObject.type === "textbox" ? (
             <>
               <div>
                 <label className="text-xs text-zinc-500">Font size</label>
                 <input className="swiss-input mt-1" type="range" min={8} max={96} value={fontSize} onChange={(e) => setFontSize(Number(e.target.value))} />
               </div>
-              <input className="h-10 w-full rounded-lg border border-zinc-300" type="color" value={color} onChange={(e) => setColor(e.target.value)} />
+              <div>
+                <label className="text-xs text-zinc-500">Text color</label>
+                <input className="mt-1 h-10 w-full rounded-lg border border-zinc-300" type="color" value={color} onChange={(e) => setColor(e.target.value)} />
+              </div>
               <div className="grid grid-cols-3 gap-2">
                 <Button type="button" onClick={() => setAlign("left")} variant={align === "left" ? "primary" : "ghost"} title="Align left">
                   <AlignLeft className="h-4 w-4" />
