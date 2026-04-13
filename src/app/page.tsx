@@ -32,6 +32,7 @@ const creditsLinks = [
   { label: "Twitter", href: "https://x.com/SekharDibyanshu" },
   { label: "LinkedIn", href: "https://www.linkedin.com/in/dibyanshusekhar/" },
   { label: "Instagram", href: "https://instagram.com/dexisreal" },
+  { label: "PORTFOLIO", href: "https://iamdex.codes/" },
   { label: "Coffee", href: "https://buymeacoffee.com/dexisworking" },
 ];
 
