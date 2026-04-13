@@ -11,8 +11,8 @@ import { serverEnv } from "@/lib/env/server";
 
 const features = [
   {
-    title: "Swiss-style template editor",
-    description: "Place text, image, and QR zones with precise control on a Fabric canvas.",
+    title: "Visual card composer",
+    description: "Build branded card layouts with reusable text, photo, and QR placeholders.",
   },
   {
     title: "CSV + image mapping",

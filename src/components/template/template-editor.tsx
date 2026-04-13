@@ -41,6 +41,7 @@ const setMeta = (object: FabricObject, meta: FieldMeta) => {
 
 export const TemplateEditor = ({ initialTemplate }: Props) => {
   const router = useRouter();
+  const canvasContainerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const fabricCanvasRef = useRef<FabricCanvas | null>(null);
   const [fabricApi, setFabricApi] = useState<FabricApi | null>(null);
@@ -57,6 +58,7 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
   const [align, setAlign] = useState<"left" | "center" | "right">("left");
   const [message, setMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [canvasScale, setCanvasScale] = useState(1);
 
   useEffect(() => {
     let unmounted = false;
@@ -168,6 +170,80 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
     canvas.setHeight(height);
     canvas.renderAll();
   }, [height, width]);
+
+  useEffect(() => {
+    if (!fabricApi || !fabricCanvasRef.current) {
+      return;
+    }
+    const canvas = fabricCanvasRef.current;
+    const sourceUrl = backgroundFile
+      ? URL.createObjectURL(backgroundFile)
+      : backgroundUrl.trim() || initialTemplate?.background_url || "";
+    let revoked = false;
+
+    if (!sourceUrl) {
+      canvas.backgroundImage = undefined;
+      canvas.renderAll();
+      return;
+    }
+
+    fabricApi.Image.fromURL(
+      sourceUrl,
+      (image) => {
+        if (revoked) {
+          return;
+        }
+        image.set({
+          selectable: false,
+          evented: false,
+          originX: "left",
+          originY: "top",
+        });
+        canvas.setBackgroundImage(
+          image,
+          canvas.renderAll.bind(canvas),
+          {
+            scaleX: width / Math.max(1, image.width ?? width),
+            scaleY: height / Math.max(1, image.height ?? height),
+          },
+        );
+      },
+      { crossOrigin: "anonymous" },
+    );
+
+    return () => {
+      revoked = true;
+      if (backgroundFile) {
+        URL.revokeObjectURL(sourceUrl);
+      }
+    };
+  }, [backgroundFile, backgroundUrl, fabricApi, height, initialTemplate?.background_url, width]);
+
+  useEffect(() => {
+    if (!canvasContainerRef.current) {
+      return;
+    }
+
+    const resize = () => {
+      const containerWidth = canvasContainerRef.current?.clientWidth ?? width;
+      setCanvasScale(Math.min(1, containerWidth / Math.max(1, width)));
+    };
+
+    resize();
+    const observer = new ResizeObserver(resize);
+    observer.observe(canvasContainerRef.current);
+    return () => observer.disconnect();
+  }, [width]);
+
+  useEffect(() => {
+    const canvas = fabricCanvasRef.current;
+    if (!canvas) {
+      return;
+    }
+    canvas.setDimensions({ width: width * canvasScale, height: height * canvasScale });
+    canvas.setZoom(canvasScale);
+    canvas.renderAll();
+  }, [canvasScale, height, width]);
 
   const addTextField = () => {
     if (!fabricApi || !fabricCanvasRef.current) {
@@ -364,7 +440,7 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
             Add QR
           </button>
         </div>
-        <div className="swiss-grid-bg overflow-auto border border-zinc-300 p-2">
+        <div ref={canvasContainerRef} className="swiss-grid-bg overflow-auto border border-zinc-300 p-2">
           <canvas ref={canvasRef} />
         </div>
       </section>

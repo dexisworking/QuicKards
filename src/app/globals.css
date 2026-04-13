@@ -19,8 +19,34 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #09090b;
+    --surface: #111113;
+    --surface-2: #18181b;
+    --foreground: #f4f4f5;
+    --muted: #a1a1aa;
+    --line: #27272a;
+    --accent: #f4f4f5;
+  }
+
+  .text-zinc-900 {
+    color: var(--foreground) !important;
+  }
+
+  .text-zinc-700,
+  .text-zinc-600,
+  .text-zinc-500 {
+    color: var(--muted) !important;
+  }
+
+  .bg-white,
+  .bg-zinc-50,
+  .bg-zinc-100 {
+    background: var(--surface) !important;
+  }
+
+  .border-zinc-300,
+  .border-zinc-200 {
+    border-color: var(--line) !important;
   }
 }
 
@@ -69,16 +95,17 @@ a {
 }
 
 .swiss-btn {
-  border: 1px solid #18181b;
-  background: #18181b;
-  color: #fafaf9;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--background);
   padding: 0.55rem 0.78rem;
   font-size: 0.84rem;
   font-weight: 500;
+  border-radius: 0.5rem;
 }
 
 .swiss-btn:hover {
-  background: #292524;
+  opacity: 0.92;
 }
 
 .swiss-btn:disabled {
@@ -92,6 +119,7 @@ a {
   padding: 0.55rem 0.78rem;
   font-size: 0.84rem;
   font-weight: 500;
+  border-radius: 0.5rem;
 }
 
 .swiss-btn-ghost:hover {
