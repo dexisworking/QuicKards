@@ -35,6 +35,8 @@ type FieldMeta = {
   fieldName: string;
 };
 
+const PX_PER_INCH = 300;
+
 const extractMeta = (object: FabricObject): FieldMeta | null => {
   const value = (object as FabricObject & { quickardsMeta?: FieldMeta }).quickardsMeta;
   if (!value?.fieldName || !value?.fieldType) {
@@ -57,6 +59,7 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
   const [name, setName] = useState(initialTemplate?.name ?? "New Template");
   const [width, setWidth] = useState(initialTemplate?.width ?? 1012);
   const [height, setHeight] = useState(initialTemplate?.height ?? 638);
+  const [sizeUnit, setSizeUnit] = useState<"px" | "in">(initialTemplate?.unit === "in" ? "in" : "px");
   const [backgroundUrl, setBackgroundUrl] = useState(initialTemplate?.background_url ?? "");
   const [backgroundFile, setBackgroundFile] = useState<File | null>(null);
   const [selectedObject, setSelectedObject] = useState<FabricObject | null>(null);
@@ -381,6 +384,27 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
 
   const zoomIn = () => setZoomLevel((value) => Math.min(2, Number((value + 0.1).toFixed(2))));
   const zoomOut = () => setZoomLevel((value) => Math.max(0.5, Number((value - 0.1).toFixed(2))));
+  const widthValue = sizeUnit === "in" ? Number((width / PX_PER_INCH).toFixed(2)) : width;
+  const heightValue = sizeUnit === "in" ? Number((height / PX_PER_INCH).toFixed(2)) : height;
+  const sizeSummary = sizeUnit === "in"
+    ? `${widthValue} × ${heightValue} in (${width}px × ${height}px)`
+    : `${width}px × ${height}px`;
+
+  const onWidthValueChange = (next: number) => {
+    if (!Number.isFinite(next) || next <= 0) {
+      return;
+    }
+    const px = sizeUnit === "in" ? Math.round(next * PX_PER_INCH) : Math.round(next);
+    setWidth(Math.max(100, px));
+  };
+
+  const onHeightValueChange = (next: number) => {
+    if (!Number.isFinite(next) || next <= 0) {
+      return;
+    }
+    const px = sizeUnit === "in" ? Math.round(next * PX_PER_INCH) : Math.round(next);
+    setHeight(Math.max(100, px));
+  };
 
   const exportFields = (): TemplateField[] => {
     const canvas = fabricCanvasRef.current;
@@ -446,7 +470,7 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
       name: name.trim(),
       width,
       height,
-      unit: "px",
+      unit: sizeUnit,
       fields: exportFields(),
       background_url: backgroundUrl.trim() || null,
     };
@@ -486,8 +510,7 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
       <EditorToolbar
         name={name}
         setName={setName}
-        width={width}
-        height={height}
+        sizeSummary={sizeSummary}
         onSave={saveTemplate}
         onPreviewToggle={() => setPreviewState(!previewMode)}
         previewMode={previewMode}
@@ -515,10 +538,12 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
         <div className="hidden xl:block">
           {showDesktopSettings ? (
             <EditorSidebar
-              width={width}
-              height={height}
-              setWidth={setWidth}
-              setHeight={setHeight}
+              widthValue={widthValue}
+              heightValue={heightValue}
+              onWidthValueChange={onWidthValueChange}
+              onHeightValueChange={onHeightValueChange}
+              sizeUnit={sizeUnit}
+              setSizeUnit={setSizeUnit}
               backgroundUrl={backgroundUrl}
               setBackgroundUrl={setBackgroundUrl}
               setBackgroundFile={setBackgroundFile}
@@ -583,15 +608,17 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
         </Button>
       </div>
 
-      <Modal open={showSidebarModal} onClose={() => setShowSidebarModal(false)} title="Editor controls">
-        <EditorSidebar
-          width={width}
-          height={height}
-          setWidth={setWidth}
-          setHeight={setHeight}
-          backgroundUrl={backgroundUrl}
-          setBackgroundUrl={setBackgroundUrl}
-          setBackgroundFile={setBackgroundFile}
+        <Modal open={showSidebarModal} onClose={() => setShowSidebarModal(false)} title="Editor controls">
+          <EditorSidebar
+            widthValue={widthValue}
+            heightValue={heightValue}
+            onWidthValueChange={onWidthValueChange}
+            onHeightValueChange={onHeightValueChange}
+            sizeUnit={sizeUnit}
+            setSizeUnit={setSizeUnit}
+            backgroundUrl={backgroundUrl}
+            setBackgroundUrl={setBackgroundUrl}
+            setBackgroundFile={setBackgroundFile}
           addTextField={addTextField}
           addImageField={() => addShapeField("image")}
           addQrField={() => addShapeField("qr")}

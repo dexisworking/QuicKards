@@ -49,7 +49,7 @@ export const normalizeTemplateDocument = (value: unknown): TemplateDocument => {
   return {
     width,
     height,
-    unit: source.unit === "mm" ? "mm" : "px",
+    unit: source.unit === "mm" || source.unit === "in" ? source.unit : "px",
     fields: rawFields.map((field, index) => normalizeField(field, index)),
   };
 };

@@ -12,7 +12,7 @@ type CreateTemplateBody = {
   name?: string;
   width?: number;
   height?: number;
-  unit?: "px" | "mm";
+  unit?: "px" | "mm" | "in";
   fields?: unknown[];
   background_url?: string | null;
 };

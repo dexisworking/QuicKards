@@ -6,15 +6,14 @@ import { Button } from "@/components/ui/button";
 type ToolbarProps = {
   name: string;
   setName: (value: string) => void;
-  width: number;
-  height: number;
+  sizeSummary: string;
   onSave: () => void;
   onPreviewToggle: () => void;
   previewMode: boolean;
   busy: boolean;
 };
 
-export const EditorToolbar = ({ name, setName, width, height, onSave, onPreviewToggle, previewMode, busy }: ToolbarProps) => {
+export const EditorToolbar = ({ name, setName, sizeSummary, onSave, onPreviewToggle, previewMode, busy }: ToolbarProps) => {
   return (
     <div className="sticky top-0 z-20 flex flex-wrap items-center gap-2 rounded-2xl border border-zinc-300 bg-[var(--surface)]/95 p-3 backdrop-blur">
       <div className="flex w-full items-center gap-2 md:w-auto">
@@ -24,7 +23,7 @@ export const EditorToolbar = ({ name, setName, width, height, onSave, onPreviewT
           className="swiss-input w-full md:min-w-[280px]"
           aria-label="Template name"
         />
-        <span className="hidden rounded-full border border-zinc-300 px-2 py-1 text-xs text-zinc-600 md:inline-flex">{width} × {height}px</span>
+        <span className="hidden rounded-full border border-zinc-300 px-2 py-1 text-xs text-zinc-600 md:inline-flex">{sizeSummary}</span>
       </div>
       <div className="flex w-full items-center gap-2 overflow-x-auto pb-1 md:ml-auto md:w-auto md:overflow-visible md:pb-0">
         <Button type="button" variant="ghost" onClick={onPreviewToggle} title="Toggle preview" className="shrink-0">

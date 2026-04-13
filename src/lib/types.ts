@@ -19,7 +19,7 @@ export type TemplateField = {
 export type TemplateDocument = {
   width: number;
   height: number;
-  unit?: "px" | "mm";
+  unit?: "px" | "mm" | "in";
   fields: TemplateField[];
 };
 

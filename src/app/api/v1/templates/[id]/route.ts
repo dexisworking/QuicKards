@@ -12,7 +12,7 @@ type UpdateTemplateBody = {
   name?: string;
   width?: number;
   height?: number;
-  unit?: "px" | "mm";
+  unit?: "px" | "mm" | "in";
   fields?: unknown[];
 };
 
