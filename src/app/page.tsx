@@ -26,6 +26,14 @@ const features = [
   },
 ];
 
+const creditsLinks = [
+  { label: "GitHub", href: "https://github.com/dexisworking" },
+  { label: "Twitter", href: "https://x.com/SekharDibyanshu" },
+  { label: "LinkedIn", href: "https://www.linkedin.com/in/dibyanshusekhar/" },
+  { label: "Instagram", href: "https://instagram.com/dexisreal" },
+  { label: "Coffee", href: "https://buymeacoffee.com/dexisworking" },
+];
+
 export default async function Home() {
   const current = await getCurrentUser();
 
@@ -74,6 +82,44 @@ export default async function Home() {
             </article>
           ))}
         </section>
+
+        <section className="swiss-container pb-8">
+          <article className="swiss-section p-5">
+            <p className="swiss-kicker">Credits</p>
+            <p className="mt-2 text-sm text-zinc-600">
+              Built by Dibyanshu Sekhar. Inspired by the visual system from{" "}
+              <a href="https://iamdex.codes/" target="_blank" rel="noreferrer" className="underline">
+                iamdex.codes
+              </a>.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {creditsLinks.map((link) => (
+                <a
+                  key={link.label}
+                  href={link.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="border border-zinc-300 bg-white px-3 py-1 text-xs uppercase tracking-wide text-zinc-600 hover:text-zinc-900"
+                >
+                  {link.label}
+                </a>
+              ))}
+            </div>
+          </article>
+        </section>
+
+        <footer className="border-t border-zinc-300">
+          <div className="swiss-container flex flex-col gap-3 py-5 text-xs text-zinc-600 sm:flex-row sm:items-center sm:justify-between">
+            <span>© 2026 Dibyanshu Sekhar</span>
+            <div className="flex flex-wrap items-center gap-3">
+              {creditsLinks.map((link) => (
+                <a key={link.label} href={link.href} target="_blank" rel="noreferrer" className="uppercase tracking-wide hover:text-zinc-900">
+                  {link.label}
+                </a>
+              ))}
+            </div>
+          </div>
+        </footer>
       </main>
     );
   }
@@ -169,6 +215,19 @@ export default async function Home() {
           </div>
         </section>
       </div>
+
+      <footer className="border-t border-zinc-300">
+        <div className="swiss-container flex flex-col gap-3 py-5 text-xs text-zinc-600 sm:flex-row sm:items-center sm:justify-between">
+          <span>© 2026 Dibyanshu Sekhar</span>
+          <div className="flex flex-wrap items-center gap-3">
+            {creditsLinks.map((link) => (
+              <a key={link.label} href={link.href} target="_blank" rel="noreferrer" className="uppercase tracking-wide hover:text-zinc-900">
+                {link.label}
+              </a>
+            ))}
+          </div>
+        </div>
+      </footer>
     </main>
   );
 }
