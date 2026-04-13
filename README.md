@@ -4,8 +4,6 @@
 
 QuicKards is a production-focused SaaS starter for colleges, festivals, events, and orgs that need fast, branded ID card generation at scale.
 
-> **Suggested GitHub repository description:**  
-> `Canva-style bulk ID card generator with CSV + image mapping, server-side rendering, and Appwrite backend.`
 
 ## Highlights
 
