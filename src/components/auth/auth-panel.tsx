@@ -7,6 +7,7 @@ export const AuthPanel = () => {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [message, setMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -33,13 +34,32 @@ export const AuthPanel = () => {
 
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
-    await runAuth("signin");
+    await runAuth(mode);
   };
 
   return (
-    <div className="w-full max-w-md rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
-      <h2 className="text-xl font-semibold text-zinc-900">Sign in to QuicKards</h2>
-      <p className="mt-1 text-sm text-zinc-600">Use your Appwrite account credentials to continue.</p>
+    <div className="swiss-section w-full max-w-md p-6">
+      <p className="swiss-kicker">Workspace access</p>
+      <h2 className="mt-1 text-xl font-semibold text-zinc-900">
+        {mode === "signin" ? "Sign in to continue" : "Create your account"}
+      </h2>
+      <p className="mt-1 text-sm text-zinc-600">Manage templates, data imports, and render jobs inside your private dashboard.</p>
+      <div className="mt-4 grid grid-cols-2 border border-zinc-300 text-sm">
+        <button
+          type="button"
+          onClick={() => setMode("signin")}
+          className={mode === "signin" ? "bg-zinc-900 px-3 py-2 text-white" : "px-3 py-2 hover:bg-zinc-50"}
+        >
+          Sign in
+        </button>
+        <button
+          type="button"
+          onClick={() => setMode("signup")}
+          className={mode === "signup" ? "bg-zinc-900 px-3 py-2 text-white" : "px-3 py-2 hover:bg-zinc-50"}
+        >
+          Sign up
+        </button>
+      </div>
       <form className="mt-5 space-y-3" onSubmit={onSubmit}>
         <input
           type="email"
@@ -47,7 +67,7 @@ export const AuthPanel = () => {
           placeholder="Email"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
-          className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-600"
+          className="swiss-input"
         />
         <input
           type="password"
@@ -55,25 +75,11 @@ export const AuthPanel = () => {
           placeholder="Password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
-          className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-600"
+          className="swiss-input"
         />
-        <div className="flex gap-2">
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
-          >
-            Sign in
-          </button>
-          <button
-            type="button"
-            disabled={isLoading}
-            onClick={() => runAuth("signup")}
-            className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-50 disabled:opacity-60"
-          >
-            Sign up
-          </button>
-        </div>
+        <button type="submit" disabled={isLoading} className="swiss-btn w-full">
+          {mode === "signin" ? "Enter workspace" : "Create account"}
+        </button>
         {message ? <p className="text-sm text-zinc-700">{message}</p> : null}
       </form>
     </div>

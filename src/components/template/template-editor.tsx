@@ -240,6 +240,16 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
     canvas.renderAll();
   };
 
+  const removeSelectedField = () => {
+    const canvas = fabricCanvasRef.current;
+    if (!canvas || !selectedObject) {
+      return;
+    }
+    canvas.remove(selectedObject);
+    setSelectedObject(null);
+    canvas.renderAll();
+  };
+
   const exportFields = (): TemplateField[] => {
     const canvas = fabricCanvasRef.current;
     if (!canvas) {
@@ -341,40 +351,33 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
   };
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
-      <section className="rounded-lg border border-zinc-200 bg-white p-4">
+    <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
+      <section className="swiss-section p-4">
         <div className="mb-3 flex flex-wrap gap-2">
-          <button className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-50" onClick={addTextField} type="button">
+          <button className="swiss-btn-ghost" onClick={addTextField} type="button">
             Add text
           </button>
-          <button
-            className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-50"
-            onClick={() => addShapeField("image")}
-            type="button"
-          >
+          <button className="swiss-btn-ghost" onClick={() => addShapeField("image")} type="button">
             Add image
           </button>
-          <button
-            className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-50"
-            onClick={() => addShapeField("qr")}
-            type="button"
-          >
+          <button className="swiss-btn-ghost" onClick={() => addShapeField("qr")} type="button">
             Add QR
           </button>
         </div>
-        <div className="overflow-auto rounded-md border border-zinc-200 p-2">
+        <div className="swiss-grid-bg overflow-auto border border-zinc-300 p-2">
           <canvas ref={canvasRef} />
         </div>
       </section>
 
-      <form className="space-y-3 rounded-lg border border-zinc-200 bg-white p-4" onSubmit={saveTemplate}>
-        <h2 className="text-base font-semibold text-zinc-900">Template settings</h2>
+      <form className="swiss-section space-y-3 p-4" onSubmit={saveTemplate}>
+        <p className="swiss-kicker">Template setup</p>
+        <h2 className="text-base font-semibold text-zinc-900">Canvas settings</h2>
         <input
           value={name}
           onChange={(event) => setName(event.target.value)}
           required
           placeholder="Template name"
-          className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-600"
+          className="swiss-input"
         />
         <div className="grid grid-cols-2 gap-2">
           <input
@@ -382,7 +385,7 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
             min={100}
             value={width}
             onChange={(event) => setWidth(Number(event.target.value))}
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-600"
+            className="swiss-input"
             placeholder="Width"
           />
           <input
@@ -390,7 +393,7 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
             min={100}
             value={height}
             onChange={(event) => setHeight(Number(event.target.value))}
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-600"
+            className="swiss-input"
             placeholder="Height"
           />
         </div>
@@ -398,7 +401,7 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
           value={backgroundUrl}
           onChange={(event) => setBackgroundUrl(event.target.value)}
           placeholder="Optional background URL"
-          className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-600"
+          className="swiss-input"
         />
         <label className="block text-xs text-zinc-600">
           Optional background image file
@@ -406,18 +409,18 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
             type="file"
             accept="image/*"
             onChange={(event) => setBackgroundFile(event.target.files?.[0] ?? null)}
-            className="mt-1 block w-full text-sm"
+            className="swiss-file mt-1"
           />
         </label>
 
-        <div className="rounded-md border border-zinc-200 p-3">
+        <div className="border border-zinc-300 p-3">
           <h3 className="text-sm font-semibold text-zinc-900">Selected field</h3>
           {selectedObject ? (
             <div className="mt-2 space-y-2">
               <input
                 value={fieldName}
                 onChange={(event) => setFieldName(event.target.value)}
-                className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-600"
+                className="swiss-input"
               />
               {selectedObject.type === "textbox" ? (
                 <>
@@ -426,18 +429,18 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
                     min={8}
                     value={fontSize}
                     onChange={(event) => setFontSize(Number(event.target.value))}
-                    className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-600"
+                    className="swiss-input"
                   />
                   <input
                     type="color"
                     value={color}
                     onChange={(event) => setColor(event.target.value)}
-                    className="h-10 w-full rounded-md border border-zinc-300"
+                    className="h-10 w-full border border-zinc-300"
                   />
                   <select
                     value={align}
                     onChange={(event) => setAlign(event.target.value as "left" | "center" | "right")}
-                    className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-600"
+                    className="swiss-select"
                   >
                     <option value="left">Left</option>
                     <option value="center">Center</option>
@@ -445,13 +448,14 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
                   </select>
                 </>
               ) : null}
-              <button
-                type="button"
-                onClick={applySelectedChanges}
-                className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-50"
-              >
-                Apply field changes
-              </button>
+              <div className="flex gap-2">
+                <button type="button" onClick={applySelectedChanges} className="swiss-btn-ghost">
+                  Apply field changes
+                </button>
+                <button type="button" onClick={removeSelectedField} className="swiss-btn-ghost">
+                  Remove field
+                </button>
+              </div>
             </div>
           ) : (
             <p className="mt-2 text-xs text-zinc-500">Select any field on canvas to edit properties.</p>
@@ -461,7 +465,7 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
         <button
           type="submit"
           disabled={isSaving}
-          className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
+          className="swiss-btn w-full"
         >
           {isSaving ? "Saving..." : "Save template"}
         </button>

@@ -44,19 +44,20 @@ export const CreateProjectForm = ({ templates }: Props) => {
   };
 
   return (
-    <form onSubmit={onSubmit} className="rounded-lg border border-zinc-200 bg-white p-4 space-y-3">
+    <form onSubmit={onSubmit} className="swiss-section space-y-3 p-5">
+      <p className="swiss-kicker">Start a pipeline</p>
       <h2 className="text-base font-semibold text-zinc-900">New project</h2>
       <input
         required
         value={name}
         onChange={(event) => setName(event.target.value)}
         placeholder="Project name"
-        className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-600"
+        className="swiss-input"
       />
       <select
         value={templateId}
         onChange={(event) => setTemplateId(event.target.value)}
-        className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-600"
+        className="swiss-select"
       >
         <option value="">No template yet</option>
         {templates.map((template) => (
@@ -67,10 +68,11 @@ export const CreateProjectForm = ({ templates }: Props) => {
       </select>
       <button
         disabled={isLoading}
-        className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
+        className="swiss-btn w-full"
       >
         Create project
       </button>
+      <p className="text-xs text-zinc-500">Attach a template now or assign one later while editing.</p>
       {message ? <p className="text-sm text-red-600">{message}</p> : null}
     </form>
   );

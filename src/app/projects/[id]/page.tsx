@@ -64,14 +64,15 @@ export default async function ProjectPage(context: PageContext) {
   };
 
   return (
-    <main className="min-h-screen bg-zinc-100 p-6">
-      <div className="mx-auto max-w-6xl space-y-4">
+    <main className="min-h-screen py-6">
+      <div className="swiss-container max-w-6xl space-y-4">
         <div className="flex items-center justify-between">
           <div>
+            <p className="swiss-kicker">Project workspace</p>
             <h1 className="text-2xl font-semibold text-zinc-900">{project.name}</h1>
             <p className="text-sm text-zinc-600">Project status: {project.status}</p>
           </div>
-          <Link href="/" className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-50">
+          <Link href="/" className="swiss-btn-ghost">
             Back
           </Link>
         </div>

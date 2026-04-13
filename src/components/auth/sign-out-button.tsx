@@ -12,7 +12,7 @@ export const SignOutButton = () => {
         await fetch("/api/v1/auth/signout", { method: "POST" });
         router.refresh();
       }}
-      className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100"
+      className="swiss-btn-ghost"
     >
       Sign out
     </button>

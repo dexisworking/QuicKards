@@ -154,21 +154,42 @@ export const ProjectWorkspace = ({ projectId, initialData }: Props) => {
 
   return (
     <div className="space-y-4">
-      <section className="rounded-lg border border-zinc-200 bg-white p-4">
+      <section className="grid gap-3 md:grid-cols-4">
+        <div className="swiss-section p-4">
+          <p className="swiss-kicker">Rows</p>
+          <p className="mt-1 text-2xl font-semibold text-zinc-900">{projectData.cardData.length}</p>
+        </div>
+        <div className="swiss-section p-4">
+          <p className="swiss-kicker">Images</p>
+          <p className="mt-1 text-2xl font-semibold text-zinc-900">{projectData.assets.length}</p>
+        </div>
+        <div className="swiss-section p-4">
+          <p className="swiss-kicker">Jobs</p>
+          <p className="mt-1 text-2xl font-semibold text-zinc-900">{projectData.jobs.length}</p>
+        </div>
+        <div className="swiss-section p-4">
+          <p className="swiss-kicker">Status</p>
+          <p className="mt-1 text-sm uppercase tracking-wide text-zinc-700">{projectData.project.status}</p>
+        </div>
+      </section>
+
+      <section className="swiss-section p-4">
+        <p className="swiss-kicker">Step 1</p>
         <h2 className="text-base font-semibold text-zinc-900">Data import</h2>
         <form className="mt-3 flex flex-wrap items-end gap-2" onSubmit={uploadCsv}>
-          <input type="file" accept=".csv,text/csv" onChange={(event) => setCsvFile(event.target.files?.[0] ?? null)} />
-          <button disabled={isBusy} className="rounded-md bg-zinc-900 px-3 py-2 text-sm text-white hover:bg-zinc-800 disabled:opacity-60">
+          <input className="swiss-file max-w-sm" type="file" accept=".csv,text/csv" onChange={(event) => setCsvFile(event.target.files?.[0] ?? null)} />
+          <button disabled={isBusy} className="swiss-btn">
             Upload CSV
           </button>
         </form>
       </section>
 
-      <section className="rounded-lg border border-zinc-200 bg-white p-4">
+      <section className="swiss-section p-4">
+        <p className="swiss-kicker">Step 2</p>
         <h2 className="text-base font-semibold text-zinc-900">Image mapping</h2>
         <form className="mt-3 flex flex-wrap items-end gap-2" onSubmit={uploadZip}>
-          <input type="file" accept=".zip,application/zip" onChange={(event) => setZipFile(event.target.files?.[0] ?? null)} />
-          <button disabled={isBusy} className="rounded-md border border-zinc-300 px-3 py-2 text-sm hover:bg-zinc-50 disabled:opacity-60">
+          <input className="swiss-file max-w-sm" type="file" accept=".zip,application/zip" onChange={(event) => setZipFile(event.target.files?.[0] ?? null)} />
+          <button disabled={isBusy} className="swiss-btn-ghost">
             Upload ZIP
           </button>
         </form>
@@ -177,33 +198,34 @@ export const ProjectWorkspace = ({ projectId, initialData }: Props) => {
             value={singleCardId}
             onChange={(event) => setSingleCardId(event.target.value)}
             placeholder="card_id"
-            className="rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-600"
+            className="swiss-input max-w-[220px]"
           />
-          <input type="file" accept="image/*" onChange={(event) => setSingleImageFile(event.target.files?.[0] ?? null)} />
-          <button disabled={isBusy} className="rounded-md border border-zinc-300 px-3 py-2 text-sm hover:bg-zinc-50 disabled:opacity-60">
+          <input className="swiss-file max-w-sm" type="file" accept="image/*" onChange={(event) => setSingleImageFile(event.target.files?.[0] ?? null)} />
+          <button disabled={isBusy} className="swiss-btn-ghost">
             Upload single image
           </button>
         </form>
       </section>
 
-      <section className="rounded-lg border border-zinc-200 bg-white p-4">
-        <h2 className="text-base font-semibold text-zinc-900">Render</h2>
+      <section className="swiss-section p-4">
+        <p className="swiss-kicker">Step 3</p>
+        <h2 className="text-base font-semibold text-zinc-900">Render output</h2>
         <div className="mt-3 flex flex-wrap gap-2">
-          <button disabled={isBusy} onClick={runPreview} className="rounded-md border border-zinc-300 px-3 py-2 text-sm hover:bg-zinc-50 disabled:opacity-60">
+          <button disabled={isBusy} onClick={runPreview} className="swiss-btn-ghost">
             Render preview (5 cards)
           </button>
-          <button disabled={isBusy} onClick={runRender} className="rounded-md bg-zinc-900 px-3 py-2 text-sm text-white hover:bg-zinc-800 disabled:opacity-60">
+          <button disabled={isBusy} onClick={runRender} className="swiss-btn">
             Full batch render
           </button>
         </div>
       </section>
 
       {preview.length > 0 ? (
-        <section className="rounded-lg border border-zinc-200 bg-white p-4">
+        <section className="swiss-section p-4">
           <h2 className="text-base font-semibold text-zinc-900">Preview</h2>
           <div className="mt-3 grid gap-3 md:grid-cols-2">
             {preview.map((item) => (
-              <div key={item.card_id} className="rounded-md border border-zinc-200 p-2">
+              <div key={item.card_id} className="border border-zinc-300 p-2">
                 <p className="mb-2 text-xs text-zinc-600">{item.card_id}</p>
                 <Image unoptimized src={item.image} width={480} height={300} alt={item.card_id} className="h-auto w-full rounded" />
               </div>
@@ -212,19 +234,19 @@ export const ProjectWorkspace = ({ projectId, initialData }: Props) => {
         </section>
       ) : null}
 
-      <section className="rounded-lg border border-zinc-200 bg-white p-4">
+      <section className="swiss-section p-4">
         <h2 className="text-base font-semibold text-zinc-900">Jobs</h2>
         <div className="mt-3 space-y-2">
           {projectData.jobs.length ? (
             projectData.jobs.map((job) => (
-              <div key={job.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-zinc-200 px-3 py-2">
+              <div key={job.id} className="flex flex-wrap items-center justify-between gap-2 border border-zinc-300 px-3 py-2">
                 <div className="text-sm">
                   <p className="font-medium text-zinc-900">{job.id}</p>
                   <p className="text-xs uppercase tracking-wide text-zinc-500">{job.status}</p>
                   {job.error ? <p className="text-xs text-red-600">{job.error}</p> : null}
                 </div>
                 {job.status === "completed" ? (
-                  <button onClick={() => downloadJob(job.id)} className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-50">
+                  <button onClick={() => downloadJob(job.id)} className="swiss-btn-ghost">
                     Download ZIP
                   </button>
                 ) : null}
@@ -236,12 +258,12 @@ export const ProjectWorkspace = ({ projectId, initialData }: Props) => {
         </div>
       </section>
 
-      <section className="rounded-lg border border-zinc-200 bg-white p-4">
+      <section className="swiss-section p-4">
         <h2 className="text-base font-semibold text-zinc-900">Loaded data snapshot</h2>
         <p className="mt-1 text-sm text-zinc-600">
           Cards: {projectData.cardData.length} | Images: {projectData.assets.length} | Status: {projectData.project.status}
         </p>
-        <div className="mt-3 max-h-64 overflow-auto rounded-md border border-zinc-200">
+        <div className="mt-3 max-h-64 overflow-auto border border-zinc-300">
           <table className="w-full text-left text-xs">
             <thead className="bg-zinc-50 text-zinc-600">
               <tr>

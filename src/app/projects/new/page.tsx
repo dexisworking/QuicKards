@@ -23,11 +23,14 @@ export default async function NewProjectPage() {
   ]);
 
   return (
-    <main className="min-h-screen bg-zinc-100 p-6">
-      <div className="mx-auto max-w-xl space-y-4">
+    <main className="min-h-screen py-6">
+      <div className="swiss-container max-w-xl space-y-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold text-zinc-900">Create project</h1>
-          <Link href="/" className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-50">
+          <div>
+            <p className="swiss-kicker">Project setup</p>
+            <h1 className="text-2xl font-semibold text-zinc-900">Create project</h1>
+          </div>
+          <Link href="/" className="swiss-btn-ghost">
             Back
           </Link>
         </div>
