@@ -8,4 +8,5 @@ export const appwriteCollections = {
   cardData: serverEnv.cardDataCollectionId,
   assets: serverEnv.assetsCollectionId,
   jobs: serverEnv.jobsCollectionId,
+  fonts: serverEnv.fontsCollectionId,
 } as const;

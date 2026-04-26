@@ -1,5 +1,5 @@
 import type { Models } from "node-appwrite";
-import type { AssetRecord, CardDataRecord, JobRecord, ProjectRecord, TemplateField, TemplateRecord } from "@/lib/types";
+import type { AssetRecord, CardDataRecord, JobRecord, ProjectRecord, TemplateField, TemplateRecord, CustomFontRecord } from "@/lib/types";
 
 const parseJson = <T>(value: unknown, fallback: T): T => {
   if (typeof value === "string") {
@@ -95,5 +95,18 @@ export const toJobRecord = (document: Models.Document): JobRecord => {
     error: asNullableString(data.errorMessage),
     created_at: document.$createdAt,
     completed_at: asNullableString(data.completedAt),
+  };
+};
+
+export const toCustomFontRecord = (document: Models.Document): CustomFontRecord => {
+  const data = document as Models.Document & Record<string, unknown>;
+
+  return {
+    id: document.$id,
+    user_id: asString(data.userId),
+    name: asString(data.name),
+    font_family: asString(data.fontFamily),
+    file_id: asString(data.fileId),
+    created_at: document.$createdAt,
   };
 };

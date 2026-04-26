@@ -59,6 +59,7 @@ export const normalizeField = (field: unknown, index: number): TemplateField => 
     borderColor: asText(source.borderColor, "#2563eb"),
     borderWidth: asNumber(source.borderWidth, 1),
     cornerRadius: asNumber(source.cornerRadius, 0),
+    shape: (source.shape === "circle" || source.shape === "triangle" ? source.shape : "rect") as "rect" | "circle" | "triangle",
   };
 };
 

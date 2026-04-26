@@ -46,6 +46,11 @@ type PropertiesProps = {
   setBorderWidth: (value: number) => void;
   cornerRadius: number;
   setCornerRadius: (value: number) => void;
+  shape: "rect" | "circle" | "triangle";
+  setShape: (value: "rect" | "circle" | "triangle") => void;
+  customFonts: { name: string; fontFamily: string }[];
+  onFontUpload: (file: File) => void;
+  isUploadingFont: boolean;
   applySelectedChanges: () => void;
   removeSelectedField: () => void;
 };
@@ -188,6 +193,11 @@ export const EditorPropertiesPanel = ({
   setBorderWidth,
   cornerRadius,
   setCornerRadius,
+  shape,
+  setShape,
+  customFonts,
+  onFontUpload,
+  isUploadingFont,
   applySelectedChanges,
   removeSelectedField,
 }: PropertiesProps) => {
@@ -237,16 +247,45 @@ export const EditorPropertiesPanel = ({
               <Section title="Typography">
                 <RangeField label="Font size" value={fontSize} onChange={setFontSize} min={8} max={96} step={1} suffix="px" />
                 <div>
-                  <label className="mb-1 block text-xs text-[var(--muted)]">Font family</label>
+                  <div className="mb-1 flex items-center justify-between">
+                    <label className="text-xs text-[var(--muted)]">Font family</label>
+                    <label className="cursor-pointer text-xs font-medium text-[var(--accent)] hover:underline">
+                      {isUploadingFont ? "Uploading..." : "Upload .ttf/.otf"}
+                      <input
+                        type="file"
+                        accept=".ttf,.otf"
+                        className="hidden"
+                        disabled={isUploadingFont}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            onFontUpload(file);
+                            e.target.value = "";
+                          }
+                        }}
+                      />
+                    </label>
+                  </div>
                   <select className="swiss-select" value={fontFamily} onChange={(event) => setFontFamily(event.target.value)}>
-                    <option value="Arial">Arial</option>
-                    <option value="Helvetica">Helvetica</option>
-                    <option value="Verdana">Verdana</option>
-                    <option value="Georgia">Georgia</option>
-                    <option value="Times New Roman">Times New Roman</option>
-                    <option value="Courier New">Courier New</option>
-                    <option value="Noto Sans">Noto Sans</option>
-                    <option value="sans-serif">System Sans</option>
+                    <optgroup label="System Fonts">
+                      <option value="Arial">Arial</option>
+                      <option value="Helvetica">Helvetica</option>
+                      <option value="Verdana">Verdana</option>
+                      <option value="Georgia">Georgia</option>
+                      <option value="Times New Roman">Times New Roman</option>
+                      <option value="Courier New">Courier New</option>
+                      <option value="Noto Sans">Noto Sans</option>
+                      <option value="sans-serif">System Sans</option>
+                    </optgroup>
+                    {customFonts.length > 0 && (
+                      <optgroup label="Custom Fonts">
+                        {customFonts.map((font) => (
+                          <option key={font.name} value={font.fontFamily}>
+                            {font.name}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
                   </select>
                 </div>
                 <ColorField label="Text color" value={color} onChange={setColor} />
@@ -308,10 +347,20 @@ export const EditorPropertiesPanel = ({
             </>
           ) : (
             <Section title="Style">
+              <div>
+                <label className="mb-1 block text-xs text-[var(--muted)]">Shape</label>
+                <select className="swiss-select" value={shape} onChange={(event) => setShape(event.target.value as "rect" | "circle" | "triangle")}>
+                  <option value="rect">Rectangle</option>
+                  <option value="circle">Circle</option>
+                  <option value="triangle">Triangle</option>
+                </select>
+              </div>
               <ColorField label="Fill color" value={fillColor} onChange={setFillColor} />
               <ColorField label="Border color" value={borderColor} onChange={setBorderColor} />
               <RangeField label="Border width" value={borderWidth} onChange={setBorderWidth} min={0} max={10} step={0.5} suffix="px" />
-              <RangeField label="Corner radius" value={cornerRadius} onChange={setCornerRadius} min={0} max={64} step={1} suffix="px" />
+              {shape === "rect" && (
+                <RangeField label="Corner radius" value={cornerRadius} onChange={setCornerRadius} min={0} max={64} step={1} suffix="px" />
+              )}
             </Section>
           )}
 

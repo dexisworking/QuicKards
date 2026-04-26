@@ -33,6 +33,7 @@ type FabricObject = import("fabric").fabric.Object;
 type FieldMeta = {
   fieldType: "text" | "image" | "qr";
   fieldName: string;
+  shape?: "rect" | "circle" | "triangle";
 };
 
 const PX_PER_INCH = 300;
@@ -100,6 +101,9 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
   const [borderColor, setBorderColor] = useState("#2563eb");
   const [borderWidth, setBorderWidth] = useState(1);
   const [cornerRadius, setCornerRadius] = useState(0);
+  const [shape, setShape] = useState<"rect" | "circle" | "triangle">("rect");
+  const [customFonts, setCustomFonts] = useState<{ name: string; fontFamily: string }[]>([]);
+  const [isUploadingFont, setIsUploadingFont] = useState(false);
   const [align, setAlign] = useState<"left" | "center" | "right">("left");
   const [message, setMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -122,6 +126,38 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
       }
       setFabricApi(module.fabric);
     });
+
+    const fetchFonts = async () => {
+      try {
+        const response = await fetch("/api/v1/fonts");
+        if (!response.ok) return;
+        const data = await response.json();
+        if (unmounted) return;
+        
+        const fonts = data.fonts || [];
+        setCustomFonts(fonts.map((f: any) => ({ name: f.name, fontFamily: f.font_family })));
+        
+        let styleTag = document.getElementById("quickards-custom-fonts");
+        if (!styleTag) {
+          styleTag = document.createElement("style");
+          styleTag.id = "quickards-custom-fonts";
+          document.head.appendChild(styleTag);
+        }
+        
+        const css = fonts.map((f: any) => `
+          @font-face {
+            font-family: '${f.font_family}';
+            src: url('/api/v1/fonts/${f.file_id}/download') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+          }
+        `).join("\\n");
+        styleTag.innerHTML = css;
+      } catch {
+        // ignore
+      }
+    };
+    fetchFonts();
 
     return () => {
       unmounted = true;
@@ -177,11 +213,20 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
         return;
       }
 
-      const shapeObject = selected as import("fabric").fabric.Rect;
+      const shapeObject = selected as import("fabric").fabric.Object;
+      let selectedShape: "rect" | "circle" | "triangle" = "rect";
+      if (shapeObject.type === "circle") selectedShape = "circle";
+      if (shapeObject.type === "triangle") selectedShape = "triangle";
+      setShape(selectedShape);
+
       setFillColor(toHexColor(shapeObject.fill, "#f3f4f6"));
       setBorderColor(toHexColor(shapeObject.stroke, "#2563eb"));
       setBorderWidth(Number(shapeObject.strokeWidth ?? 1));
-      setCornerRadius(Number(shapeObject.rx ?? 0));
+      if (shapeObject.type === "rect") {
+        setCornerRadius(Number((shapeObject as import("fabric").fabric.Rect).rx ?? 0));
+      } else {
+        setCornerRadius(0);
+      }
     };
 
     canvas.on("selection:created", updateSelection);
@@ -229,22 +274,43 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
           return;
         }
 
-        const rect = new fabricApi.Rect({
+        const commonProps = {
           left: field.x,
           top: field.y,
-          width: field.width,
-          height: field.height,
           fill: field.fillColor ?? "#f3f4f6",
           stroke: field.borderColor ?? (field.fieldType === "image" ? "#2563eb" : "#16a34a"),
           strokeDashArray: [6, 4],
           strokeWidth: field.borderWidth ?? 1,
-          rx: field.cornerRadius ?? 0,
-          ry: field.cornerRadius ?? 0,
           opacity: field.opacity ?? 1,
           angle: field.rotation ?? 0,
-        });
-        setMeta(rect, { fieldType: field.fieldType, fieldName: field.fieldName });
-        canvas.add(rect);
+        };
+
+        let shapeObj: import("fabric").fabric.Object;
+        if (field.shape === "circle") {
+          shapeObj = new fabricApi.Circle({
+            ...commonProps,
+            radius: 100,
+            scaleX: field.width / 200,
+            scaleY: field.height / 200,
+          });
+        } else if (field.shape === "triangle") {
+          shapeObj = new fabricApi.Triangle({
+            ...commonProps,
+            width: field.width,
+            height: field.height,
+          });
+        } else {
+          shapeObj = new fabricApi.Rect({
+            ...commonProps,
+            width: field.width,
+            height: field.height,
+            rx: field.cornerRadius ?? 0,
+            ry: field.cornerRadius ?? 0,
+          });
+        }
+        
+        setMeta(shapeObj, { fieldType: field.fieldType, fieldName: field.fieldName, shape: field.shape ?? "rect" });
+        canvas.add(shapeObj);
       });
 
       canvas.renderAll();
@@ -395,6 +461,7 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
     setMeta(object, {
       fieldType,
       fieldName: fieldType === "image" ? "photo" : "qr_data",
+      shape: "rect",
     });
     fabricCanvasRef.current.add(object);
     fabricCanvasRef.current.setActiveObject(object);
@@ -403,7 +470,7 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
 
   const applySelectedChanges = () => {
     const canvas = fabricCanvasRef.current;
-    if (!canvas || !selectedObject) {
+    if (!canvas || !selectedObject || !fabricApi) {
       return;
     }
 
@@ -440,16 +507,63 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
         shadow: nextShadow,
       });
     } else {
-      const shapeObject = selectedObject as import("fabric").fabric.Rect;
-      shapeObject.set({
-        fill: fillColor,
-        stroke: borderColor,
-        strokeWidth: borderWidth,
-        rx: cornerRadius,
-        ry: cornerRadius,
-        opacity,
-        angle: rotation,
-      });
+      let objectToUpdate = selectedObject;
+      if (selectedObject.type !== shape && !(selectedObject.type === "rect" && shape === "rect")) {
+        const newObjProps = {
+          left: selectedObject.left,
+          top: selectedObject.top,
+          fill: fillColor,
+          stroke: borderColor,
+          strokeWidth: borderWidth,
+          opacity,
+          angle: rotation,
+          strokeDashArray: [6, 4],
+        };
+        const sw = selectedObject.getScaledWidth();
+        const sh = selectedObject.getScaledHeight();
+        
+        if (shape === "circle") {
+          objectToUpdate = new fabricApi.Circle({
+            ...newObjProps,
+            radius: 100,
+            scaleX: sw / 200,
+            scaleY: sh / 200,
+          });
+        } else if (shape === "triangle") {
+          objectToUpdate = new fabricApi.Triangle({
+            ...newObjProps,
+            width: sw,
+            height: sh,
+          });
+        } else {
+          objectToUpdate = new fabricApi.Rect({
+            ...newObjProps,
+            width: sw,
+            height: sh,
+            rx: cornerRadius,
+            ry: cornerRadius,
+          });
+        }
+        
+        setMeta(objectToUpdate, { ...meta, fieldName, shape });
+        canvas.remove(selectedObject);
+        canvas.add(objectToUpdate);
+        canvas.setActiveObject(objectToUpdate);
+        setSelectedObject(objectToUpdate);
+      } else {
+        const shapeObject = selectedObject as import("fabric").fabric.Object;
+        shapeObject.set({
+          fill: fillColor,
+          stroke: borderColor,
+          strokeWidth: borderWidth,
+          opacity,
+          angle: rotation,
+        });
+        if (shapeObject.type === "rect") {
+          (shapeObject as import("fabric").fabric.Rect).set({ rx: cornerRadius, ry: cornerRadius });
+        }
+        setMeta(shapeObject, { ...meta, fieldName, shape });
+      }
     }
 
     canvas.renderAll();
@@ -552,11 +666,14 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
           base.shadowOffsetX = Number((textbox.shadow as { offsetX?: number } | null)?.offsetX ?? 0);
           base.shadowOffsetY = Number((textbox.shadow as { offsetY?: number } | null)?.offsetY ?? 0);
         } else {
-          const shapeObject = object as import("fabric").fabric.Rect;
+          const shapeObject = object as import("fabric").fabric.Object;
           base.fillColor = String(shapeObject.fill ?? "rgba(0,0,0,0.04)");
           base.borderColor = String(shapeObject.stroke ?? "#2563eb");
           base.borderWidth = Number(shapeObject.strokeWidth ?? 1);
-          base.cornerRadius = Number(shapeObject.rx ?? 0);
+          base.shape = meta.shape ?? "rect";
+          if (shapeObject.type === "rect") {
+            base.cornerRadius = Number((shapeObject as import("fabric").fabric.Rect).rx ?? 0);
+          }
         }
         base.opacity = Number(object.opacity ?? 1);
         base.rotation = Number(object.angle ?? 0);
@@ -582,6 +699,45 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
     if (!response.ok) {
       const payload = (await response.json()) as { error?: string };
       throw new Error(payload.error ?? "Failed to upload background");
+    }
+  };
+
+  const uploadFont = async (file: File) => {
+    setIsUploadingFont(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("name", file.name);
+
+      const response = await fetch("/api/v1/fonts", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) throw new Error("Failed to upload font");
+      const data = await response.json();
+      const newFont = data.font;
+      
+      setCustomFonts((prev) => [...prev, { name: newFont.name, fontFamily: newFont.font_family }]);
+      
+      let styleTag = document.getElementById("quickards-custom-fonts");
+      if (styleTag) {
+        styleTag.innerHTML += `
+          @font-face {
+            font-family: '${newFont.font_family}';
+            src: url('/api/v1/fonts/${newFont.file_id}/download') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+          }
+        `;
+      }
+      
+      setFontFamily(newFont.font_family);
+      setMessage("Font uploaded successfully");
+    } catch (e) {
+      setMessage("Failed to upload font");
+    } finally {
+      setIsUploadingFont(false);
     }
   };
 
@@ -734,6 +890,11 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
             setBorderWidth={setBorderWidth}
             cornerRadius={cornerRadius}
             setCornerRadius={setCornerRadius}
+            shape={shape}
+            setShape={setShape}
+            customFonts={customFonts}
+            onFontUpload={uploadFont}
+            isUploadingFont={isUploadingFont}
             applySelectedChanges={applySelectedChanges}
             removeSelectedField={removeSelectedField}
           />
@@ -816,6 +977,11 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
           setBorderWidth={setBorderWidth}
           cornerRadius={cornerRadius}
           setCornerRadius={setCornerRadius}
+          shape={shape}
+          setShape={setShape}
+          customFonts={customFonts}
+          onFontUpload={uploadFont}
+          isUploadingFont={isUploadingFont}
           applySelectedChanges={applySelectedChanges}
           removeSelectedField={removeSelectedField}
         />

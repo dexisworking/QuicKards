@@ -2,6 +2,8 @@ export type HorizontalAlign = "left" | "center" | "right";
 
 export type TemplateFieldType = "text" | "image" | "qr";
 
+export type FrameShape = "rect" | "circle" | "triangle";
+
 export type TemplateField = {
   id: string;
   fieldType: TemplateFieldType;
@@ -29,6 +31,7 @@ export type TemplateField = {
   borderColor?: string;
   borderWidth?: number;
   cornerRadius?: number;
+  shape?: FrameShape;
 };
 
 export type TemplateDocument = {
@@ -85,4 +88,13 @@ export type JobRecord = {
   error: string | null;
   created_at: string;
   completed_at: string | null;
+};
+
+export type CustomFontRecord = {
+  id: string;
+  user_id: string;
+  name: string;
+  font_family: string;
+  file_id: string;
+  created_at: string;
 };

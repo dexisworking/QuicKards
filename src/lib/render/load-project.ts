@@ -1,7 +1,7 @@
 import type { Databases, Storage } from "node-appwrite";
 import { Query } from "node-appwrite";
 import { appwriteCollections } from "@/lib/appwrite/collections";
-import { toAssetRecord, toCardDataRecord, toProjectRecord, toTemplateRecord } from "@/lib/appwrite/records";
+import { toAssetRecord, toCardDataRecord, toProjectRecord, toTemplateRecord, toCustomFontRecord } from "@/lib/appwrite/records";
 import { serverEnv } from "@/lib/env/server";
 import { isExpiredResource } from "@/lib/expiry";
 import { normalizeTemplateDocument } from "@/lib/template/normalize";
@@ -16,6 +16,7 @@ export type LoadedRenderProject = {
   rows: CardRow[];
   resolveCardImage: (cardId: string) => Promise<Buffer | null>;
   backgroundBuffer: Buffer | null;
+  customFonts: Record<string, Buffer>;
 };
 
 const toBuffer = (value: ArrayBuffer): Buffer => Buffer.from(new Uint8Array(value));
@@ -114,6 +115,21 @@ export const loadRenderProject = async (
     backgroundBuffer = await fetchBufferFromExternalUrl(template.background_url);
   }
 
+  const fontDocuments = await databases.listDocuments(serverEnv.appwriteDatabaseId, appwriteCollections.fonts, [
+    Query.equal("userId", project.user_id),
+    Query.limit(100),
+  ]);
+
+  const customFonts: Record<string, Buffer> = {};
+  for (const doc of fontDocuments.documents) {
+    const font = toCustomFontRecord(doc);
+    try {
+      customFonts[font.font_family] = toBuffer(await storage.getFileDownload(serverEnv.fontBucketId, font.file_id));
+    } catch {
+      // ignore
+    }
+  }
+
   return {
     template: normalizeTemplateDocument({
       width: template.width,
@@ -124,5 +140,6 @@ export const loadRenderProject = async (
     rows,
     resolveCardImage,
     backgroundBuffer,
+    customFonts,
   };
 };
