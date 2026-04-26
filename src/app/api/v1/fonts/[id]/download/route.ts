@@ -10,7 +10,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
   const { id } = await context.params;
 
   try {
-    const arrayBuffer = await auth.storage.getFileDownload(serverEnv.fontBucketId, id);
+    const arrayBuffer = await auth.storage.getFileDownload(serverEnv.storageBucketId, id);
     const headers = new Headers();
     headers.set("Content-Type", "font/ttf"); // or font/otf based on extension, but browser will sniff
     headers.set("Cache-Control", "public, max-age=31536000, immutable");

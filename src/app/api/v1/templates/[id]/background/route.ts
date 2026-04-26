@@ -40,7 +40,7 @@ export async function POST(request: Request, context: RouteContext) {
 
     const extension = extensionFromFilename(file.name, "png");
     const uploaded = await auth.storage.createFile(
-      serverEnv.templateBucketId,
+      serverEnv.storageBucketId,
       ID.unique(),
       InputFile.fromBuffer(Buffer.from(await file.arrayBuffer()), file.name),
     );

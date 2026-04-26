@@ -95,7 +95,7 @@ export const loadRenderProject = async (
     }
 
     try {
-      const buffer = toBuffer(await storage.getFileDownload(serverEnv.imageBucketId, fileId));
+      const buffer = toBuffer(await storage.getFileDownload(serverEnv.storageBucketId, fileId));
       imageCache.set(cardId, buffer);
       return buffer;
     } catch {
@@ -107,7 +107,7 @@ export const loadRenderProject = async (
   let backgroundBuffer: Buffer | null = null;
   if (template.background_file_id) {
     try {
-      backgroundBuffer = toBuffer(await storage.getFileView(serverEnv.templateBucketId, template.background_file_id));
+      backgroundBuffer = toBuffer(await storage.getFileView(serverEnv.storageBucketId, template.background_file_id));
     } catch {
       backgroundBuffer = null;
     }
@@ -124,7 +124,7 @@ export const loadRenderProject = async (
   for (const doc of fontDocuments.documents) {
     const font = toCustomFontRecord(doc);
     try {
-      customFonts[font.font_family] = toBuffer(await storage.getFileDownload(serverEnv.fontBucketId, font.file_id));
+      customFonts[font.font_family] = toBuffer(await storage.getFileDownload(serverEnv.storageBucketId, font.file_id));
     } catch {
       // ignore
     }

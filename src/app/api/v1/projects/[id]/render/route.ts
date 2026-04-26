@@ -73,7 +73,7 @@ export async function POST(_request: Request, context: RouteContext) {
     ]);
 
     const outputFile = await auth.storage.createFile(
-      serverEnv.outputBucketId,
+      serverEnv.storageBucketId,
       ID.unique(),
       InputFile.fromBuffer(zipBuffer, `cards-${jobId}.zip`),
     );

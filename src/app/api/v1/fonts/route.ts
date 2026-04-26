@@ -37,7 +37,7 @@ export async function GET() {
         expired.map(async (item) => {
           try {
             await auth.databases.deleteDocument(serverEnv.appwriteDatabaseId, appwriteCollections.fonts, item.id);
-            await auth.storage.deleteFile(serverEnv.fontBucketId, item.file_id);
+            await auth.storage.deleteFile(serverEnv.storageBucketId, item.file_id);
           } catch {
             // Ignore partial errors during cleanup
           }
@@ -78,7 +78,7 @@ export async function POST(request: Request) {
     const fileToUpload = new File([buffer], file.name, { type: file.type || "application/octet-stream" });
 
     // 1. Upload file to storage
-    const uploadedFile = await auth.storage.createFile(serverEnv.fontBucketId, ID.unique(), fileToUpload);
+    const uploadedFile = await auth.storage.createFile(serverEnv.storageBucketId, ID.unique(), fileToUpload);
 
     // Generate a safe font family name (e.g. alphanumeric)
     const fontFamily = `CustomFont_${ID.unique().replace(/-/g, "")}`;

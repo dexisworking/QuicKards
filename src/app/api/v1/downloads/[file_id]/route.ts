@@ -40,7 +40,7 @@ export async function GET(_request: Request, context: RouteContext) {
       return jsonError("File not found", 404);
     }
 
-    const bytes = await auth.storage.getFileDownload(serverEnv.outputBucketId, job.output_url);
+    const bytes = await auth.storage.getFileDownload(serverEnv.storageBucketId, job.output_url);
 
     return new Response(Buffer.from(new Uint8Array(bytes)), {
       status: 200,

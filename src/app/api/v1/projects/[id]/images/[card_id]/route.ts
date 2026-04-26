@@ -34,7 +34,7 @@ export async function GET(_request: Request, context: RouteContext) {
     }
 
     const asset = toAssetRecord(assets.documents[0]);
-    const imageBytes = await auth.storage.getFileView(serverEnv.imageBucketId, asset.file_url);
+    const imageBytes = await auth.storage.getFileView(serverEnv.storageBucketId, asset.file_url);
     const base64 = Buffer.from(new Uint8Array(imageBytes)).toString("base64");
     const mime = asset.file_type ?? "image/jpeg";
 
