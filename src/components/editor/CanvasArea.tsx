@@ -1,10 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Grid3X3, ZoomIn, ZoomOut } from "lucide-react";
+import { Grid3X3, Minus, Plus } from "lucide-react";
 import type { RefObject } from "react";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 
 type CanvasAreaProps = {
   canvasContainerRef: RefObject<HTMLDivElement | null>;
@@ -26,39 +24,66 @@ export const CanvasArea = ({
   onGridToggle,
 }: CanvasAreaProps) => {
   return (
-    <Card className="min-h-[360px] sm:min-h-[440px] lg:min-h-[520px]">
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <Button type="button" onClick={onZoomOut} title="Zoom out">
-          <ZoomOut className="h-4 w-4" />
-        </Button>
-        <span className="text-xs text-zinc-600">{zoomPercent}%</span>
-        <Button type="button" onClick={onZoomIn} title="Zoom in">
-          <ZoomIn className="h-4 w-4" />
-        </Button>
-        <Button
-          type="button"
-          onClick={onGridToggle}
-          variant={showGrid ? "primary" : "ghost"}
-          className="ml-auto"
-          title="Toggle grid"
-        >
-          <Grid3X3 className="h-4 w-4" />
-        </Button>
-      </div>
-      <div className="rounded-2xl border border-zinc-300 bg-zinc-100/70 p-2 sm:p-4">
+    <div className="swiss-section min-h-[360px] sm:min-h-[440px] lg:min-h-[520px] p-4 relative">
+      {/* Canvas container */}
+      <div
+        className={`rounded-xl border border-[var(--line)] p-2 sm:p-3 ${
+          showGrid ? "swiss-dot-grid" : "bg-[var(--surface-2)]"
+        }`}
+        style={{ boxShadow: "inset 0 2px 8px rgba(0,0,0,0.04)" }}
+      >
         <motion.div
           ref={canvasContainerRef}
-          className={
-            showGrid
-              ? "swiss-grid-bg overflow-auto rounded-xl border border-zinc-300 bg-white p-1 sm:p-2"
-              : "overflow-auto rounded-xl border border-zinc-300 bg-white p-1 sm:p-2"
-          }
+          className="overflow-auto rounded-lg bg-white"
           initial={{ opacity: 0.9 }}
           animate={{ opacity: 1 }}
+          transition={{ duration: 0.3 }}
         >
           <canvas ref={canvasRef} />
         </motion.div>
       </div>
-    </Card>
+
+      {/* Floating zoom bar */}
+      <div className="absolute bottom-6 left-1/2 z-10 -translate-x-1/2">
+        <div className="flex items-center gap-1 rounded-full border border-[var(--line)] bg-[var(--surface)] px-2 py-1 shadow-md">
+          <button
+            type="button"
+            onClick={onZoomOut}
+            title="Zoom out"
+            className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--muted)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]"
+          >
+            <Minus className="h-3.5 w-3.5" />
+          </button>
+
+          <span className="min-w-[3rem] text-center text-xs font-semibold tabular-nums text-[var(--foreground)]">
+            {zoomPercent}%
+          </span>
+
+          <button
+            type="button"
+            onClick={onZoomIn}
+            title="Zoom in"
+            className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--muted)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]"
+          >
+            <Plus className="h-3.5 w-3.5" />
+          </button>
+
+          <div className="mx-1 h-4 w-px bg-[var(--line)]" />
+
+          <button
+            type="button"
+            onClick={onGridToggle}
+            title="Toggle grid"
+            className={`flex h-7 w-7 items-center justify-center rounded-full transition-colors ${
+              showGrid
+                ? "bg-[var(--accent)] text-white"
+                : "text-[var(--muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]"
+            }`}
+          >
+            <Grid3X3 className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };

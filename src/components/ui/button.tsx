@@ -5,21 +5,39 @@ import type { HTMLMotionProps } from "framer-motion";
 import clsx from "clsx";
 
 type ButtonProps = HTMLMotionProps<"button"> & {
-  variant?: "primary" | "ghost";
+  variant?: "primary" | "ghost" | "danger";
+  size?: "sm" | "md" | "lg";
   fullWidth?: boolean;
 };
 
-export const Button = ({ children, variant = "ghost", fullWidth = false, className, ...props }: ButtonProps) => {
+export const Button = ({
+  children,
+  variant = "ghost",
+  size = "md",
+  fullWidth = false,
+  className,
+  ...props
+}: ButtonProps) => {
+  const variantClass =
+    variant === "primary"
+      ? "swiss-btn"
+      : variant === "danger"
+        ? "swiss-btn-danger"
+        : "swiss-btn-ghost";
+
+  const sizeClass =
+    size === "sm"
+      ? "text-xs px-2.5 py-1.5"
+      : size === "lg"
+        ? "text-sm px-5 py-3"
+        : "";
+
   return (
     <motion.button
-      whileHover={props.disabled ? undefined : { scale: 1.03 }}
+      whileHover={props.disabled ? undefined : { scale: 1.02 }}
       whileTap={props.disabled ? undefined : { scale: 0.97 }}
-      transition={{ duration: 0.18, ease: "easeInOut" }}
-      className={clsx(
-        variant === "primary" ? "swiss-btn" : "swiss-btn-ghost",
-        fullWidth && "w-full",
-        className,
-      )}
+      transition={{ type: "spring", stiffness: 400, damping: 25 }}
+      className={clsx(variantClass, sizeClass, fullWidth && "w-full", className)}
       {...props}
     >
       {children}

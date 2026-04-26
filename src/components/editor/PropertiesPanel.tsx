@@ -1,9 +1,10 @@
 "use client";
 
-import { AlignCenter, AlignLeft, AlignRight, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { AlignCenter, AlignLeft, AlignRight, ChevronDown, ChevronRight, MousePointer2, Trash2 } from "lucide-react";
 import type { fabric } from "fabric";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 
 type FabricObject = fabric.Object;
 
@@ -49,6 +50,106 @@ type PropertiesProps = {
   removeSelectedField: () => void;
 };
 
+const Section = ({
+  title,
+  defaultOpen = true,
+  children,
+}: {
+  title: string;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) => {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="border-b border-[var(--line)] pb-3 last:border-0 last:pb-0">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between py-1 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]"
+      >
+        {title}
+        {open ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+      </button>
+      <AnimatePresence>
+        {open ? (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="space-y-2.5 pt-2">{children}</div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+const ColorField = ({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) => (
+  <div>
+    <label className="mb-1 block text-xs text-[var(--muted)]">{label}</label>
+    <div className="flex items-center gap-2">
+      <div
+        className="h-8 w-8 shrink-0 rounded-lg border border-[var(--line)]"
+        style={{ background: value }}
+      />
+      <input
+        className="swiss-color-input flex-1"
+        type="color"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    </div>
+  </div>
+);
+
+const RangeField = ({
+  label,
+  value,
+  onChange,
+  min,
+  max,
+  step,
+  suffix = "",
+}: {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+  min: number;
+  max: number;
+  step: number;
+  suffix?: string;
+}) => (
+  <div>
+    <div className="mb-1 flex items-center justify-between">
+      <label className="text-xs text-[var(--muted)]">{label}</label>
+      <span className="font-mono text-xs text-[var(--muted-2)]">
+        {typeof value === "number" && value % 1 !== 0 ? value.toFixed(2) : value}
+        {suffix}
+      </span>
+    </div>
+    <input
+      className="swiss-input"
+      type="range"
+      min={min}
+      max={max}
+      step={step}
+      value={value}
+      onChange={(e) => onChange(Number(e.target.value))}
+    />
+  </div>
+);
+
 export const EditorPropertiesPanel = ({
   selectedObject,
   fieldName,
@@ -91,117 +192,151 @@ export const EditorPropertiesPanel = ({
   removeSelectedField,
 }: PropertiesProps) => {
   return (
-    <Card className="h-full xl:sticky xl:top-20">
-      <p className="swiss-kicker">Properties</p>
+    <div className="swiss-section h-full overflow-y-auto p-4 xl:sticky xl:top-20">
+      <div className="mb-3 flex items-center justify-between">
+        <p className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Properties</p>
+        {selectedObject ? (
+          <span className="swiss-badge swiss-badge-accent">
+            {selectedObject.type === "textbox" ? "Text" : "Shape"}
+          </span>
+        ) : null}
+      </div>
+
       {!selectedObject ? (
-        <p className="mt-2 text-sm text-zinc-500">Select an element on canvas to edit its properties.</p>
+        <div className="flex flex-col items-center gap-3 py-10 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--surface-2)]">
+            <MousePointer2 className="h-6 w-6 text-[var(--muted-2)]" />
+          </div>
+          <p className="text-sm text-[var(--muted)]">
+            Select an element on the canvas to edit its properties.
+          </p>
+        </div>
       ) : (
-        <div className="mt-3 space-y-3">
-          <div>
-            <label className="text-xs text-zinc-500">Field name</label>
-            <input className="swiss-input mt-1" value={fieldName} onChange={(event) => setFieldName(event.target.value)} />
-          </div>
-          <div>
-            <label className="text-xs text-zinc-500">Opacity ({Math.round(opacity * 100)}%)</label>
-            <input className="swiss-input mt-1" type="range" min={0} max={1} step={0.01} value={opacity} onChange={(e) => setOpacity(Number(e.target.value))} />
-          </div>
-          <div>
-            <label className="text-xs text-zinc-500">Rotation ({rotation}°)</label>
-            <input className="swiss-input mt-1" type="range" min={-180} max={180} step={1} value={rotation} onChange={(e) => setRotation(Number(e.target.value))} />
-          </div>
+        <div className="space-y-3">
+          {/* Field name */}
+          <Section title="Field">
+            <div>
+              <label className="mb-1 block text-xs text-[var(--muted)]">Name</label>
+              <input
+                className="swiss-input"
+                value={fieldName}
+                onChange={(event) => setFieldName(event.target.value)}
+              />
+            </div>
+          </Section>
+
+          {/* Transform */}
+          <Section title="Transform">
+            <RangeField label="Opacity" value={opacity} onChange={setOpacity} min={0} max={1} step={0.01} suffix="" />
+            <RangeField label="Rotation" value={rotation} onChange={setRotation} min={-180} max={180} step={1} suffix="°" />
+          </Section>
+
           {selectedObject.type === "textbox" ? (
             <>
-              <div>
-                <label className="text-xs text-zinc-500">Font size</label>
-                <input className="swiss-input mt-1" type="range" min={8} max={96} value={fontSize} onChange={(e) => setFontSize(Number(e.target.value))} />
-              </div>
-              <div>
-                <label className="text-xs text-zinc-500">Font family</label>
-                <select className="swiss-select mt-1" value={fontFamily} onChange={(event) => setFontFamily(event.target.value)}>
-                  <option value="Arial">Arial</option>
-                  <option value="Helvetica">Helvetica</option>
-                  <option value="Verdana">Verdana</option>
-                  <option value="Georgia">Georgia</option>
-                  <option value="Times New Roman">Times New Roman</option>
-                  <option value="Courier New">Courier New</option>
-                  <option value="Noto Sans">Noto Sans</option>
-                  <option value="sans-serif">System Sans</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-xs text-zinc-500">Text color</label>
-                <input className="mt-1 h-10 w-full rounded-lg border border-zinc-300" type="color" value={color} onChange={(e) => setColor(e.target.value)} />
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <Button type="button" variant={fontWeight === "bold" ? "primary" : "ghost"} onClick={() => setFontWeight(fontWeight === "bold" ? "normal" : "bold")}>
-                  Bold
-                </Button>
-                <Button type="button" variant={fontStyle === "italic" ? "primary" : "ghost"} onClick={() => setFontStyle(fontStyle === "italic" ? "normal" : "italic")}>
-                  Italic
-                </Button>
-              </div>
-              <label className="flex items-center gap-2 text-sm text-zinc-600">
-                <input type="checkbox" className="h-4 w-4" checked={underline} onChange={(e) => setUnderline(e.target.checked)} />
-                Underline
-              </label>
-              <div>
-                <label className="text-xs text-zinc-500">Stroke width</label>
-                <input className="swiss-input mt-1" type="range" min={0} max={8} step={0.5} value={strokeWidth} onChange={(e) => setStrokeWidth(Number(e.target.value))} />
-              </div>
-              <div>
-                <label className="text-xs text-zinc-500">Stroke color</label>
-                <input className="mt-1 h-10 w-full rounded-lg border border-zinc-300" type="color" value={strokeColor} onChange={(e) => setStrokeColor(e.target.value)} />
-              </div>
-              <div>
-                <label className="text-xs text-zinc-500">Shadow blur</label>
-                <input className="swiss-input mt-1" type="range" min={0} max={32} step={1} value={shadowBlur} onChange={(e) => setShadowBlur(Number(e.target.value))} />
-              </div>
-              <div>
-                <label className="text-xs text-zinc-500">Shadow color</label>
-                <input className="mt-1 h-10 w-full rounded-lg border border-zinc-300" type="color" value={shadowColor} onChange={(e) => setShadowColor(e.target.value)} />
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                <Button type="button" onClick={() => setAlign("left")} variant={align === "left" ? "primary" : "ghost"} title="Align left">
-                  <AlignLeft className="h-4 w-4" />
-                </Button>
-                <Button type="button" onClick={() => setAlign("center")} variant={align === "center" ? "primary" : "ghost"} title="Align center">
-                  <AlignCenter className="h-4 w-4" />
-                </Button>
-                <Button type="button" onClick={() => setAlign("right")} variant={align === "right" ? "primary" : "ghost"} title="Align right">
-                  <AlignRight className="h-4 w-4" />
-                </Button>
-              </div>
+              {/* Typography */}
+              <Section title="Typography">
+                <RangeField label="Font size" value={fontSize} onChange={setFontSize} min={8} max={96} step={1} suffix="px" />
+                <div>
+                  <label className="mb-1 block text-xs text-[var(--muted)]">Font family</label>
+                  <select className="swiss-select" value={fontFamily} onChange={(event) => setFontFamily(event.target.value)}>
+                    <option value="Arial">Arial</option>
+                    <option value="Helvetica">Helvetica</option>
+                    <option value="Verdana">Verdana</option>
+                    <option value="Georgia">Georgia</option>
+                    <option value="Times New Roman">Times New Roman</option>
+                    <option value="Courier New">Courier New</option>
+                    <option value="Noto Sans">Noto Sans</option>
+                    <option value="sans-serif">System Sans</option>
+                  </select>
+                </div>
+                <ColorField label="Text color" value={color} onChange={setColor} />
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={fontWeight === "bold" ? "primary" : "ghost"}
+                    onClick={() => setFontWeight(fontWeight === "bold" ? "normal" : "bold")}
+                  >
+                    <span className="font-bold">B</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={fontStyle === "italic" ? "primary" : "ghost"}
+                    onClick={() => setFontStyle(fontStyle === "italic" ? "normal" : "italic")}
+                  >
+                    <span className="italic">I</span>
+                  </Button>
+                </div>
+                <label className="flex items-center gap-2 text-sm text-[var(--muted)]">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 rounded accent-[var(--accent)]"
+                    checked={underline}
+                    onChange={(e) => setUnderline(e.target.checked)}
+                  />
+                  Underline
+                </label>
+                {/* Alignment */}
+                <div className="grid grid-cols-3 gap-1">
+                  {[
+                    { value: "left" as const, icon: <AlignLeft className="h-4 w-4" /> },
+                    { value: "center" as const, icon: <AlignCenter className="h-4 w-4" /> },
+                    { value: "right" as const, icon: <AlignRight className="h-4 w-4" /> },
+                  ].map((item) => (
+                    <Button
+                      key={item.value}
+                      type="button"
+                      size="sm"
+                      onClick={() => setAlign(item.value)}
+                      variant={align === item.value ? "primary" : "ghost"}
+                      title={`Align ${item.value}`}
+                    >
+                      {item.icon}
+                    </Button>
+                  ))}
+                </div>
+              </Section>
+
+              {/* Effects */}
+              <Section title="Effects" defaultOpen={false}>
+                <RangeField label="Stroke width" value={strokeWidth} onChange={setStrokeWidth} min={0} max={8} step={0.5} suffix="px" />
+                <ColorField label="Stroke color" value={strokeColor} onChange={setStrokeColor} />
+                <RangeField label="Shadow blur" value={shadowBlur} onChange={setShadowBlur} min={0} max={32} step={1} suffix="px" />
+                <ColorField label="Shadow color" value={shadowColor} onChange={setShadowColor} />
+              </Section>
             </>
           ) : (
-            <div className="space-y-2">
-              <div>
-                <label className="text-xs text-zinc-500">Fill color</label>
-                <input className="mt-1 h-10 w-full rounded-lg border border-zinc-300" type="color" value={fillColor} onChange={(e) => setFillColor(e.target.value)} />
-              </div>
-              <div>
-                <label className="text-xs text-zinc-500">Border color</label>
-                <input className="mt-1 h-10 w-full rounded-lg border border-zinc-300" type="color" value={borderColor} onChange={(e) => setBorderColor(e.target.value)} />
-              </div>
-              <div>
-                <label className="text-xs text-zinc-500">Border width</label>
-                <input className="swiss-input mt-1" type="range" min={0} max={10} step={0.5} value={borderWidth} onChange={(e) => setBorderWidth(Number(e.target.value))} />
-              </div>
-              <div>
-                <label className="text-xs text-zinc-500">Corner radius</label>
-                <input className="swiss-input mt-1" type="range" min={0} max={64} step={1} value={cornerRadius} onChange={(e) => setCornerRadius(Number(e.target.value))} />
-              </div>
-            </div>
+            <Section title="Style">
+              <ColorField label="Fill color" value={fillColor} onChange={setFillColor} />
+              <ColorField label="Border color" value={borderColor} onChange={setBorderColor} />
+              <RangeField label="Border width" value={borderWidth} onChange={setBorderWidth} min={0} max={10} step={0.5} suffix="px" />
+              <RangeField label="Corner radius" value={cornerRadius} onChange={setCornerRadius} min={0} max={64} step={1} suffix="px" />
+            </Section>
           )}
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Button type="button" variant="primary" onClick={applySelectedChanges} title="Apply changes" className="w-full sm:w-auto">
+
+          {/* Actions */}
+          <div className="flex gap-2 pt-2">
+            <Button
+              type="button"
+              variant="primary"
+              onClick={applySelectedChanges}
+              title="Apply changes"
+              className="flex-1"
+            >
               Apply
             </Button>
-            <Button type="button" onClick={removeSelectedField} title="Delete selected" className="w-full sm:w-auto">
+            <Button
+              type="button"
+              variant="danger"
+              onClick={removeSelectedField}
+              title="Delete selected"
+            >
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
         </div>
       )}
-    </Card>
+    </div>
   );
 };

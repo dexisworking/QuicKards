@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { ChevronRight } from "lucide-react";
 import { Query } from "node-appwrite";
 import { ProjectWorkspace, type ProjectPayload } from "@/components/projects/project-workspace";
 import { getCurrentUser } from "@/lib/api/auth";
@@ -68,11 +69,15 @@ export default async function ProjectPage(context: PageContext) {
       <div className="swiss-container max-w-6xl space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <p className="swiss-kicker">Project workspace</p>
-            <h1 className="text-2xl font-semibold text-zinc-900">{project.name}</h1>
-            <p className="text-sm text-zinc-600">Project status: {project.status}</p>
+            <nav className="flex items-center gap-1.5 text-xs text-[var(--muted)]">
+              <Link href="/" className="transition-colors hover:text-[var(--accent)]">Dashboard</Link>
+              <ChevronRight className="h-3 w-3" />
+              <span className="text-[var(--foreground)]">{project.name}</span>
+            </nav>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight text-[var(--foreground)]">{project.name}</h1>
+            <span className="mt-1 swiss-badge swiss-badge-accent">{project.status}</span>
           </div>
-          <Link href="/" className="swiss-btn-ghost">
+          <Link href="/" className="swiss-btn-ghost text-xs">
             Back
           </Link>
         </div>

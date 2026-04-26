@@ -677,7 +677,7 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
           ) : (
             <div className="swiss-section p-4">
               <p className="swiss-kicker">Design panel hidden</p>
-              <p className="mt-2 text-sm text-zinc-600">Use the left icon rail to add elements. Click settings icon to reopen full panel.</p>
+              <p className="mt-2 text-sm text-[var(--muted)]">Use the left icon rail to add elements. Click settings icon to reopen full panel.</p>
             </div>
           )}
         </div>
@@ -740,36 +740,37 @@ export const TemplateEditor = ({ initialTemplate }: Props) => {
         </div>
       </div>
 
-      <div className="sticky bottom-3 z-30 grid grid-cols-2 gap-2 sm:grid-cols-4 xl:hidden">
-        <Button type="button" fullWidth onClick={addTextField}>
-          <Type className="mr-2 h-4 w-4" />
+      {/* Mobile bottom bar — frosted glass */}
+      <div className="sticky bottom-3 z-30 grid grid-cols-2 gap-2 rounded-2xl border border-[var(--line)] p-2 swiss-glass shadow-md sm:grid-cols-4 xl:hidden">
+        <Button type="button" fullWidth size="sm" onClick={addTextField}>
+          <Type className="mr-1.5 h-4 w-4" />
           Text
         </Button>
-        <Button type="button" fullWidth onClick={() => addShapeField("image")}>
-          <ImageIcon className="mr-2 h-4 w-4" />
+        <Button type="button" fullWidth size="sm" onClick={() => addShapeField("image")}>
+          <ImageIcon className="mr-1.5 h-4 w-4" />
           Image
         </Button>
-        <Button type="button" fullWidth onClick={() => setShowSidebarModal(true)}>
-          <Wrench className="mr-2 h-4 w-4" />
+        <Button type="button" fullWidth size="sm" onClick={() => setShowSidebarModal(true)}>
+          <Wrench className="mr-1.5 h-4 w-4" />
           Tools
         </Button>
-        <Button type="button" fullWidth onClick={() => setShowPropertiesModal(true)}>
-          <SlidersHorizontal className="mr-2 h-4 w-4" />
-          Properties
+        <Button type="button" fullWidth size="sm" onClick={() => setShowPropertiesModal(true)}>
+          <SlidersHorizontal className="mr-1.5 h-4 w-4" />
+          Props
         </Button>
       </div>
 
-        <Modal open={showSidebarModal} onClose={() => setShowSidebarModal(false)} title="Editor controls">
-          <EditorSidebar
-            widthValue={widthValue}
-            heightValue={heightValue}
-            onWidthValueChange={onWidthValueChange}
-            onHeightValueChange={onHeightValueChange}
-            sizeUnit={sizeUnit}
-            setSizeUnit={setSizeUnit}
-            backgroundUrl={backgroundUrl}
-            setBackgroundUrl={setBackgroundUrl}
-            setBackgroundFile={setBackgroundFile}
+      <Modal open={showSidebarModal} onClose={() => setShowSidebarModal(false)} title="Editor controls">
+        <EditorSidebar
+          widthValue={widthValue}
+          heightValue={heightValue}
+          onWidthValueChange={onWidthValueChange}
+          onHeightValueChange={onHeightValueChange}
+          sizeUnit={sizeUnit}
+          setSizeUnit={setSizeUnit}
+          backgroundUrl={backgroundUrl}
+          setBackgroundUrl={setBackgroundUrl}
+          setBackgroundFile={setBackgroundFile}
           addTextField={addTextField}
           addImageField={() => addShapeField("image")}
           addQrField={() => addShapeField("qr")}
