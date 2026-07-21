@@ -42,3 +42,6 @@ next-env.d.ts
 
 AGENTS.md
 CLAUDE.md
+
+# Render fixtures written by tests (QUICKARDS_WRITE_FIXTURES=1)
+.artifacts/
