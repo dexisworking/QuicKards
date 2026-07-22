@@ -29,11 +29,14 @@ import {
   designVersions,
   fonts,
   jobs,
+  projectStatus,
   projects,
   templates,
 } from "./schema/app";
 
 export type OrgRole = "owner" | "admin" | "member";
+
+export type ProjectStatus = (typeof projectStatus.enumValues)[number];
 
 export type OrgScope = {
   organizationId: string;
@@ -144,6 +147,14 @@ export function scoped(scope: OrgScope) {
         });
         return id;
       },
+
+      /** Advance the ingest/render status. Org-filtered, so it silently no-ops
+       *  on a project outside the org rather than mutating someone else's. */
+      setStatus: (id: string, status: ProjectStatus) =>
+        db
+          .update(projects)
+          .set({ status, updatedAt: new Date() })
+          .where(and(eq(projects.id, id), inOrg.projects)),
     },
 
     cardData: {
@@ -193,6 +204,57 @@ export function scoped(scope: OrgScope) {
           .from(cardData)
           .where(eq(cardData.projectId, projectId))
           .orderBy(cardData.rowIndex);
+      },
+    },
+
+    assets: {
+      /**
+       * Upsert per-card photo pointers, one row per card_id.
+       *
+       * The R2 key is deterministic per (project, card_id) (see keys.ts), so
+       * re-uploading overwrites the same object and the key never changes —
+       * which is why the conflict `set` can leave r2_key alone and just refresh
+       * the metadata. `targetWhere` is required because the uniqueness index is
+       * partial (only where card_id is not null).
+       */
+      upsertCardPhotos: async (
+        projectId: string,
+        photos: Array<{ cardId: string; r2Key: string; contentType: string; byteSize: number }>,
+      ) => {
+        await assertOwnsProject(projectId);
+        if (photos.length === 0) return;
+
+        const CHUNK = 1000;
+        for (let i = 0; i < photos.length; i += CHUNK) {
+          const slice = photos.slice(i, i + CHUNK);
+          await db
+            .insert(assets)
+            .values(
+              slice.map((photo) => ({
+                organizationId: scope.organizationId,
+                projectId,
+                cardId: photo.cardId,
+                kind: "card_photo" as const,
+                r2Key: photo.r2Key,
+                contentType: photo.contentType,
+                byteSize: photo.byteSize,
+              })),
+            )
+            .onConflictDoUpdate({
+              target: [assets.projectId, assets.cardId],
+              targetWhere: sql`${assets.cardId} is not null`,
+              set: {
+                r2Key: sql`excluded.r2_key`,
+                contentType: sql`excluded.content_type`,
+                byteSize: sql`excluded.byte_size`,
+              },
+            });
+        }
+      },
+
+      forProject: async (projectId: string) => {
+        await assertOwnsProject(projectId);
+        return db.select().from(assets).where(eq(assets.projectId, projectId));
       },
     },
 
