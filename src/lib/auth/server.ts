@@ -49,6 +49,19 @@ export const auth = betterAuth({
     requireEmailVerification: false,
   },
 
+  // Google is configured only when both secrets exist. This keeps local
+  // password development quiet while making the provider live immediately on
+  // preview/production once the Google Cloud OAuth credentials are deployed.
+  socialProviders:
+    process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+      ? {
+          google: {
+            clientId: process.env.GOOGLE_CLIENT_ID,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+          },
+        }
+      : {},
+
   plugins: [
     // Teams/organizations — the thing colleges and event orgs actually buy.
     // A personal account is just an org with one member, so every app table

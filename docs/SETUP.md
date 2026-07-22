@@ -49,6 +49,18 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 Leave **`BETTER_AUTH_URL`** and **`NEXT_PUBLIC_APP_URL`** at
 `http://localhost:3000` for local dev (already set in `.env.example`).
 
+### Google sign-in (optional)
+
+1. In [Google Cloud Console](https://console.cloud.google.com/), create or select
+   the QuicKards project, configure the OAuth consent screen, then create a
+   **Web application** OAuth 2.0 client.
+2. Add `http://localhost:3000` as an authorized JavaScript origin and
+   `http://localhost:3000/api/auth/callback/google` as an authorized redirect
+   URI. Add the equivalent production origin and callback URI before deploying.
+3. Put the client id and client secret in `.env.local` as `GOOGLE_CLIENT_ID` and
+   `GOOGLE_CLIENT_SECRET`. The secret is server-only; do not use a
+   `NEXT_PUBLIC_` name for it.
+
 ---
 
 ## 3. Cloudflare R2 (blob storage) — needed at Phase 3
