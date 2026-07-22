@@ -7,6 +7,7 @@
 // this handler never blocks on it, unlike v1 which rendered inline.
 
 import { requireOrgScope } from "@/lib/auth/session";
+import { releaseReservedCards, reserveCards } from "@/lib/db/billing";
 import { OrgScopeError, scoped } from "@/lib/db/scope";
 import { errorResponse } from "@/lib/http/errors";
 import { inngest } from "@/lib/inngest/client";
@@ -37,21 +38,45 @@ export async function POST(_request: Request, context: Context) {
       return Response.json({ error: "No card data to render" }, { status: 400 });
     }
 
-    // Pin the version NOW so editing the template mid-render cannot change the
-    // output. This is the enqueue-time snapshot the whole safety story rests on.
-    const jobId = await repo.jobs.create({
-      projectId: id,
-      designVersionId: template.currentVersionId,
-      total: rows.length,
-    });
+    // Reserve the allowance BEFORE creating the job. Atomic, so N concurrent
+    // renders cannot each pass the check and collectively exceed the plan.
+    const reservation = await reserveCards(scope.organizationId, rows.length);
+    if (!reservation.ok) {
+      const remaining = Math.max(0, reservation.limit - reservation.used - reservation.reserved);
+      return Response.json(
+        {
+          error: `This render needs ${reservation.requested} cards but only ${remaining} remain on your ${reservation.planName} plan this month.`,
+          code: "plan_limit_exceeded",
+          limit: reservation.limit,
+          used: reservation.used,
+          reserved: reservation.reserved,
+          requested: reservation.requested,
+        },
+        { status: 402 },
+      );
+    }
 
-    await inngest.send({
-      name: "project/render.requested",
-      data: { jobId, organizationId: scope.organizationId },
-    });
-    await repo.projects.setStatus(id, "rendering");
+    try {
+      // Pin the version NOW so editing the template mid-render cannot change the
+      // output. This is the enqueue-time snapshot the whole safety story rests on.
+      const jobId = await repo.jobs.create({
+        projectId: id,
+        designVersionId: template.currentVersionId,
+        total: rows.length,
+      });
 
-    return Response.json({ jobId, total: rows.length });
+      await inngest.send({
+        name: "project/render.requested",
+        data: { jobId, organizationId: scope.organizationId },
+      });
+      await repo.projects.setStatus(id, "rendering");
+
+      return Response.json({ jobId, total: rows.length });
+    } catch (enqueueError) {
+      // Never strand a reservation for work that was never queued.
+      await releaseReservedCards(scope.organizationId, rows.length);
+      throw enqueueError;
+    }
   } catch (error) {
     return errorResponse(error);
   }

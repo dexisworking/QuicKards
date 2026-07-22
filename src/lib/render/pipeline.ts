@@ -18,6 +18,7 @@ import { serializeDocument } from "@/lib/design/render/emit-string";
 import type { RenderWarning } from "@/lib/design/render/ir";
 import { createServerResolver, type ServerResolver } from "@/lib/design/render/resolver.server";
 import type { CardDocument, DesignNode, ImageSource } from "@/lib/design/schema";
+import { commitReservedCards, releaseReservedCards } from "@/lib/db/billing";
 import { scoped, type OrgScope } from "@/lib/db/scope";
 import { keys } from "@/lib/storage/keys";
 import { getObject, putObject } from "@/lib/storage/r2";
@@ -204,6 +205,10 @@ export async function renderJobInline(
   jobId: string,
 ): Promise<{ outputKey: string; cardCount: number; warnings: RenderWarning[] }> {
   const repo = scoped(systemScope(orgId));
+
+  // The amount reserved at enqueue (jobs.total). Reconciled either way below so
+  // a plan allowance is never silently consumed by a job that failed.
+  const reserved = (await repo.jobs.byId(jobId))?.total ?? 0;
   await repo.jobs.setRunning(jobId);
 
   try {
@@ -223,10 +228,12 @@ export async function renderJobInline(
 
     await repo.jobs.bumpProgress(jobId, cardCount);
     await repo.jobs.complete(jobId, { outputR2Key: outputKey, warnings: deduped });
+    await commitReservedCards(orgId, reserved);
 
     return { outputKey, cardCount, warnings: deduped };
   } catch (error) {
     await repo.jobs.fail(jobId, error instanceof Error ? error.message : String(error));
+    await releaseReservedCards(orgId, reserved);
     throw error;
   }
 }

@@ -13,6 +13,7 @@
 //     starve everyone else's.
 
 import type { RenderWarning } from "@/lib/design/render/ir";
+import { commitReservedCards, releaseReservedCards } from "@/lib/db/billing";
 import { scoped } from "@/lib/db/scope";
 import {
   assembleOutput,
@@ -39,10 +40,15 @@ export const renderProject = inngest.createFunction(
     concurrency: [{ key: "event.data.organizationId", limit: 2 }],
     retries: 3,
     onFailure: async ({ event, error }) => {
-      // Terminal failure after retries — record it so the UI stops spinning.
+      // Terminal failure after retries — record it so the UI stops spinning,
+      // and give the reserved plan allowance back.
       // The failure event wraps the original at event.data.event.
       const original = (event.data as { event: { data: RenderRequested } }).event;
-      await systemScope(original.data.organizationId).jobs.fail(original.data.jobId, error.message);
+      const { jobId, organizationId } = original.data;
+      const repo = systemScope(organizationId);
+      const reserved = (await repo.jobs.byId(jobId))?.total ?? 0;
+      await repo.jobs.fail(jobId, error.message);
+      await releaseReservedCards(organizationId, reserved);
     },
   },
   async ({ event, step }) => {
@@ -90,11 +96,15 @@ export const renderProject = inngest.createFunction(
       assembleOutput({ orgId: organizationId, jobId, canvas: plan.canvas }, rendered),
     );
 
-    await step.run("finalize", () =>
-      repo.jobs
-        .complete(jobId, { outputR2Key: output.outputKey, warnings: dedupeWarnings(warnings) })
-        .then(() => output),
-    );
+    await step.run("finalize", async () => {
+      await repo.jobs.complete(jobId, {
+        outputR2Key: output.outputKey,
+        warnings: dedupeWarnings(warnings),
+      });
+      // The enqueue-time reservation becomes actual usage.
+      await commitReservedCards(organizationId, plan.cardIds.length);
+      return output;
+    });
 
     return { jobId, cards: output.cardCount, outputKey: output.outputKey };
   },

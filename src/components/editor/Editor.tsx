@@ -8,7 +8,7 @@
 
 "use client";
 
-import { ChevronDown, Grid3X3, Layers3, Minus, MousePointer2, Plus, Redo2, RotateCw, Square, Trash2, Type, Undo2 } from "lucide-react";
+import { ChevronDown, Eye, EyeOff, Grid3X3, ImageIcon, Layers3, Magnet, Minus, MousePointer2, Plus, Redo2, RotateCw, Square, Trash2, Type, Undo2 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
@@ -16,8 +16,9 @@ import { IRToReact } from "@/lib/design/render/emit-react";
 import { buildDocumentIR } from "@/lib/design/render/build";
 import { createClientResolver, type ClientFont } from "@/lib/design/render/resolver.client";
 import { rotatedBounds, unionRects } from "@/lib/design/geometry";
-import type { CardDocument, DesignNode } from "@/lib/design/schema";
-import { addCode, addShape, addText, cloneNode, findNode, mutateSelected, selectedNodes, walk } from "@/lib/editor/operations";
+import type { CardDocument, DesignNode, ImageSource, TextBinding } from "@/lib/design/schema";
+import { addCode, addImage, addShape, addText, cloneNode, findNode, mutateSelected, sampleRow, selectedNodes, walk } from "@/lib/editor/operations";
+import { BindingControl, ImageSourceControl } from "./BindingControl";
 import { useDocumentStore } from "@/lib/editor/document-store";
 import { useUiStore } from "@/lib/editor/ui-store";
 import { cn } from "@/lib/utils";
@@ -30,6 +31,9 @@ type EditorProps = {
   fonts: ClientFont[];
 };
 type Drag = { x: number; y: number; ids: string[] } | null;
+
+/** Grid quantisation used while dragging with the magnet on. */
+const GRID = 5;
 
 function IconButton({ label, children, onClick, active = false }: { label: string; children: React.ReactNode; onClick: () => void; active?: boolean }) {
   return <button type="button" title={label} aria-label={label} onClick={onClick} className={cn("grid size-8 place-items-center rounded-md text-[var(--k-text-muted)] hover:bg-[var(--k-surface-2)] hover:text-[var(--k-text)]", active && "bg-[var(--k-accent-soft)] text-[var(--k-accent)]")}>{children}</button>;
@@ -52,6 +56,10 @@ export default function Editor({ templateId, name, version, document: initialDoc
   const setActiveSide = useUiStore((state) => state.setActiveSide);
   const zoom = useUiStore((state) => state.zoom);
   const setZoom = useUiStore((state) => state.setZoom);
+  const snapToGrid = useUiStore((state) => state.snapToGrid);
+  const toggleSnap = useUiStore((state) => state.toggleSnap);
+  const previewing = useUiStore((state) => state.previewing);
+  const togglePreview = useUiStore((state) => state.togglePreview);
   const [paint, setPaint] = useState<ReactNode>(null);
   const [ready, setReady] = useState(false);
   const [saveState, setSaveState] = useState<"saved" | "saving" | "conflict" | "error">("saved");
@@ -70,7 +78,14 @@ export default function Editor({ templateId, name, version, document: initialDoc
     setReady(false);
     void (async () => {
       await resolver.loadFonts(document.fonts);
-      const result = await buildDocumentIR(document, { sideId: activeSideId, row: null, resolver, mode: "editor" });
+      const result = await buildDocumentIR(document, {
+        sideId: activeSideId,
+        // Preview mode merges sample values so bound fields render like a real
+        // card; design mode shows {column} placeholders.
+        row: previewing ? sampleRow(document) : null,
+        resolver,
+        mode: "editor",
+      });
       if (!cancelled) {
         const svg = IRToReact(result.ir) as React.ReactElement<{ children?: ReactNode }>;
         setPaint(svg.props.children ?? null);
@@ -78,7 +93,7 @@ export default function Editor({ templateId, name, version, document: initialDoc
       }
     })();
     return () => { cancelled = true; };
-  }, [document, activeSideId, resolver]);
+  }, [document, activeSideId, resolver, previewing]);
 
   // Persist only settled history. Drag moves happen at pointer speed but this
   // debounce creates one immutable version once the user pauses.
@@ -102,11 +117,16 @@ export default function Editor({ templateId, name, version, document: initialDoc
   const selected = document && side ? selectedNodes(document, side.id, selectedIds) : [];
   const bounds = unionRects(selected.map((node) => rotatedBounds(node.transform)));
 
-  const move = useCallback((deltaX: number, deltaY: number, ids = selectedIds) => {
+  // `snap` is opt-in per gesture. Dragging quantises to the grid (when the magnet
+  // is on); keyboard nudging never does. Quantising a 1px nudge was a silent
+  // no-op — round((x + 1) / 5) * 5 === x — so fine positioning was impossible.
+  const move = useCallback((deltaX: number, deltaY: number, ids = selectedIds, snap = false) => {
     if (!side || ids.length === 0) return;
     mutate("Move", (draft) => mutateSelected(draft, side.id, ids, (transform) => {
-      transform.x = Math.round((transform.x + deltaX) / 5) * 5;
-      transform.y = Math.round((transform.y + deltaY) / 5) * 5;
+      const x = transform.x + deltaX;
+      const y = transform.y + deltaY;
+      transform.x = snap ? Math.round(x / GRID) * GRID : x;
+      transform.y = snap ? Math.round(y / GRID) * GRID : y;
     }));
   }, [mutate, selectedIds, side]);
 
@@ -146,6 +166,22 @@ export default function Editor({ templateId, name, version, document: initialDoc
   const nodeList: DesignNode[] = [];
   walk(side.children, (node) => nodeList.push(node));
   const primary = selected.length === 1 ? selected[0] : null;
+  /** Rebind a text-valued property (text content, or a code's encoded value). */
+  const setTextBinding = (id: string, key: "content" | "value", next: TextBinding) => {
+    mutate("Bind data", (draft) => {
+      const node = findNode(draft.sides.find((item) => item.id === side.id)?.children as DesignNode[], id);
+      if (key === "content" && node?.type === "text") node.content = next;
+      if (key === "value" && node?.type === "code") node.value = next;
+    });
+  };
+
+  const setImageSource = (id: string, next: ImageSource) => {
+    mutate("Bind photo", (draft) => {
+      const node = findNode(draft.sides.find((item) => item.id === side.id)?.children as DesignNode[], id);
+      if (node?.type === "image") node.src = next;
+    });
+  };
+
   const changePrimary = (key: "x" | "y" | "width" | "height" | "rotation", value: number) => {
     if (!primary) return;
     mutate("Transform", (draft) => mutateSelected(draft, side.id, [primary.id], (transform) => { transform[key] = key === "width" || key === "height" ? Math.max(1, value) : value; }));
@@ -157,6 +193,7 @@ export default function Editor({ templateId, name, version, document: initialDoc
       <div className="h-px w-7 bg-[var(--k-border)]" />
       <IconButton label="Add text" onClick={() => { const id = addTextProxy(); setSelected([id]); }}><Type className="size-4" /></IconButton>
       <IconButton label="Add shape" onClick={() => { const id = addShapeProxy(); setSelected([id]); }}><Square className="size-4" /></IconButton>
+      <IconButton label="Add photo" onClick={() => { const id = addImageProxy(); setSelected([id]); }}><ImageIcon className="size-4" /></IconButton>
       <IconButton label="Add QR code" onClick={() => { const id = addCodeProxy(); setSelected([id]); }}><Grid3X3 className="size-4" /></IconButton>
     </aside>
     <div className="flex min-w-0 flex-1 flex-col">
@@ -164,9 +201,9 @@ export default function Editor({ templateId, name, version, document: initialDoc
         <Link href="/templates" className="text-sm text-[var(--k-text-muted)] hover:text-[var(--k-text)]">Templates</Link>
         <span className="text-[var(--k-text-faint)]">/</span><span className="truncate text-sm font-medium">{name}</span>
         <span className={cn("ml-1 text-xs", saveState === "conflict" || saveState === "error" ? "text-[var(--k-danger)]" : "text-[var(--k-text-muted)]")}>{saveState === "saving" ? "Saving…" : saveState === "conflict" ? "Changed elsewhere — reload" : saveState === "error" ? "Could not save" : "Saved"}</span>
-        <div className="ml-auto flex items-center gap-1"><IconButton label="Undo" onClick={undo}><Undo2 className="size-4" /></IconButton><IconButton label="Redo" onClick={redo}><Redo2 className="size-4" /></IconButton><div className="mx-2 h-5 w-px bg-[var(--k-border)]" /><IconButton label="Zoom out" onClick={() => setZoom(zoom - .1)}><Minus className="size-4" /></IconButton><span className="w-10 text-center text-xs text-[var(--k-text-muted)]">{Math.round(zoom * 100)}%</span><IconButton label="Zoom in" onClick={() => setZoom(zoom + .1)}><Plus className="size-4" /></IconButton></div>
+        <div className="ml-auto flex items-center gap-1"><IconButton label={previewing ? "Show placeholders" : "Preview with sample data"} onClick={togglePreview} active={previewing}>{previewing ? <Eye className="size-4" /> : <EyeOff className="size-4" />}</IconButton><IconButton label={snapToGrid ? "Snapping on" : "Snapping off"} onClick={toggleSnap} active={snapToGrid}><Magnet className="size-4" /></IconButton><div className="mx-2 h-5 w-px bg-[var(--k-border)]" /><IconButton label="Undo" onClick={undo}><Undo2 className="size-4" /></IconButton><IconButton label="Redo" onClick={redo}><Redo2 className="size-4" /></IconButton><div className="mx-2 h-5 w-px bg-[var(--k-border)]" /><IconButton label="Zoom out" onClick={() => setZoom(zoom - .1)}><Minus className="size-4" /></IconButton><span className="w-10 text-center text-xs text-[var(--k-text-muted)]">{Math.round(zoom * 100)}%</span><IconButton label="Zoom in" onClick={() => setZoom(zoom + .1)}><Plus className="size-4" /></IconButton></div>
       </header>
-      <main className="relative flex min-h-0 flex-1 overflow-hidden bg-[var(--k-stage)]" onPointerMove={(event) => { const current = drag.current; if (!current) return; const dx = (event.clientX - current.x) / zoom; const dy = (event.clientY - current.y) / zoom; move(dx, dy, current.ids); current.x = event.clientX; current.y = event.clientY; }} onPointerUp={() => { if (drag.current) commit(); drag.current = null; }}>
+      <main className="relative flex min-h-0 flex-1 overflow-hidden bg-[var(--k-stage)]" onPointerMove={(event) => { const current = drag.current; if (!current) return; const dx = (event.clientX - current.x) / zoom; const dy = (event.clientY - current.y) / zoom; move(dx, dy, current.ids, snapToGrid); current.x = event.clientX; current.y = event.clientY; }} onPointerUp={() => { if (drag.current) commit(); drag.current = null; }}>
         <div className="absolute inset-0 opacity-60 [background-image:linear-gradient(var(--k-stage-grid)_1px,transparent_1px),linear-gradient(90deg,var(--k-stage-grid)_1px,transparent_1px)] [background-size:20px_20px]" />
         <div className="relative m-auto shadow-2xl" style={{ width: document.canvas.width * zoom, height: document.canvas.height * zoom }}>
           {!ready && <div className="absolute inset-0 grid place-items-center bg-white text-sm text-zinc-500">Loading fonts…</div>}
@@ -179,7 +216,7 @@ export default function Editor({ templateId, name, version, document: initialDoc
     </div>
     <aside className="flex w-72 shrink-0 flex-col border-l border-[var(--k-border)] bg-[var(--k-surface)]">
       <div className="border-b border-[var(--k-border)] p-3"><div className="mb-2 flex items-center gap-2 text-sm font-medium"><Layers3 className="size-4" /> Layers</div><div className="max-h-52 space-y-1 overflow-y-auto">{[...nodeList].reverse().map((node) => <button key={node.id} type="button" onClick={() => setSelected([node.id])} className={cn("flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-xs hover:bg-[var(--k-surface-2)]", selectedIds.includes(node.id) && "bg-[var(--k-accent-soft)] text-[var(--k-accent)]")}><span className="truncate">{node.name || node.type}</span><span className="text-[10px] uppercase text-[var(--k-text-faint)]">{node.type}</span></button>)}</div></div>
-      <div className="flex-1 overflow-y-auto p-3">{primary ? <><div className="mb-3 text-sm font-medium">{primary.name || primary.type}</div><div className="grid grid-cols-2 gap-2">{(["x", "y", "width", "height", "rotation"] as const).map((key) => <label key={key} className={key === "rotation" ? "col-span-2" : "text-xs text-[var(--k-text-muted)]"}>{key.toUpperCase()}<input className="mt-1 w-full rounded border border-[var(--k-border)] bg-[var(--k-bg)] px-2 py-1 text-sm" type="number" value={Math.round(primary.transform[key])} onChange={(event) => changePrimary(key, Number(event.target.value))} /></label>)}</div>{primary.type === "text" && primary.content.source === "static" && <label className="mt-3 block text-xs text-[var(--k-text-muted)]">Text<textarea className="mt-1 min-h-20 w-full rounded border border-[var(--k-border)] bg-[var(--k-bg)] p-2 text-sm" value={primary.content.value} onChange={(event) => mutate("Edit text", (draft) => { const node = findNode(draft.sides.find((item) => item.id === side.id)?.children as DesignNode[], primary.id); if (node?.type === "text" && node.content.source === "static") node.content.value = event.target.value; })} /></label>}<div className="mt-4 flex gap-2"><button type="button" className="inline-flex items-center gap-1 text-xs text-[var(--k-text-muted)] hover:text-[var(--k-text)]" onClick={() => { mutate("Rotate", (draft) => mutateSelected(draft, side.id, [primary.id], (transform) => { transform.rotation += 15; })); }}><RotateCw className="size-3" /> Rotate</button><button type="button" className="inline-flex items-center gap-1 text-xs text-[var(--k-danger)]" onClick={() => { mutate("Delete", (draft) => { const target = draft.sides.find((item) => item.id === side.id); if (target) target.children = target.children.filter((node) => node.id !== primary.id); }); setSelected([]); }}><Trash2 className="size-3" /> Delete</button></div></> : <p className="text-sm text-[var(--k-text-muted)]">Select an element to edit its position, size, rotation, and content.</p>}</div>
+      <div className="flex-1 overflow-y-auto p-3">{primary ? <><div className="mb-3 text-sm font-medium">{primary.name || primary.type}</div><div className="grid grid-cols-2 gap-2">{(["x", "y", "width", "height", "rotation"] as const).map((key) => <label key={key} className={key === "rotation" ? "col-span-2" : "text-xs text-[var(--k-text-muted)]"}>{key.toUpperCase()}<input className="mt-1 w-full rounded border border-[var(--k-border)] bg-[var(--k-bg)] px-2 py-1 text-sm" type="number" value={Math.round(primary.transform[key])} onChange={(event) => changePrimary(key, Number(event.target.value))} /></label>)}</div>{primary.type === "text" && <BindingControl label="Content" binding={primary.content} onChange={(next) => setTextBinding(primary.id, "content", next)} />}{primary.type === "code" && <BindingControl label="Encoded value" binding={primary.value} onChange={(next) => setTextBinding(primary.id, "value", next)} />}{primary.type === "image" && <ImageSourceControl src={primary.src} onChange={(next) => setImageSource(primary.id, next)} />}<div className="mt-4 flex gap-2"><button type="button" className="inline-flex items-center gap-1 text-xs text-[var(--k-text-muted)] hover:text-[var(--k-text)]" onClick={() => { mutate("Rotate", (draft) => mutateSelected(draft, side.id, [primary.id], (transform) => { transform.rotation += 15; })); }}><RotateCw className="size-3" /> Rotate</button><button type="button" className="inline-flex items-center gap-1 text-xs text-[var(--k-danger)]" onClick={() => { mutate("Delete", (draft) => { const target = draft.sides.find((item) => item.id === side.id); if (target) target.children = target.children.filter((node) => node.id !== primary.id); }); setSelected([]); }}><Trash2 className="size-3" /> Delete</button></div></> : <p className="text-sm text-[var(--k-text-muted)]">Select an element to edit its position, size, rotation, and content.</p>}</div>
       {document.sides.length > 1 && <div className="border-t border-[var(--k-border)] p-3"><button type="button" className="flex w-full items-center justify-between text-sm" onClick={() => setActiveSide(document.sides.find((item) => item.id !== side.id)?.id ?? side.id)}>{side.name}<ChevronDown className="size-4" /></button></div>}
     </aside>
   </div>;
@@ -187,4 +224,5 @@ export default function Editor({ templateId, name, version, document: initialDoc
   function addTextProxy() { let id = ""; mutate("Add text", (draft) => { id = addText(draft, sideId); }); return id; }
   function addShapeProxy() { let id = ""; mutate("Add shape", (draft) => { id = addShape(draft, sideId); }); return id; }
   function addCodeProxy() { let id = ""; mutate("Add QR code", (draft) => { id = addCode(draft, sideId); }); return id; }
+  function addImageProxy() { let id = ""; mutate("Add photo", (draft) => { id = addImage(draft, sideId); }); return id; }
 }
