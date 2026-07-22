@@ -16,11 +16,11 @@ import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 rounded-[var(--k-radius)] font-semibold whitespace-nowrap transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--k-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--k-bg)] disabled:opacity-50 disabled:pointer-events-none cursor-pointer",
+  "inline-flex items-center justify-center gap-2 rounded-[var(--k-radius)] font-semibold whitespace-nowrap transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--k-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--k-bg)] disabled:pointer-events-none disabled:opacity-50 cursor-pointer active:scale-[0.98]",
   {
     variants: {
       variant: {
-        primary: "bg-[var(--k-accent)] text-[var(--k-accent-fg)] hover:bg-[var(--k-accent-hover)]",
+        primary: "bg-[var(--k-accent)] text-[var(--k-accent-fg)] shadow-[0_8px_18px_color-mix(in_srgb,var(--k-accent)_24%,transparent)] hover:bg-[var(--k-accent-hover)] hover:shadow-[0_10px_22px_color-mix(in_srgb,var(--k-accent)_32%,transparent)]",
         secondary:
           "bg-[var(--k-surface-2)] text-[var(--k-text)] border border-[var(--k-border)] hover:bg-[var(--k-surface-hover)]",
         ghost: "text-[var(--k-text-muted)] hover:text-[var(--k-text)] hover:bg-[var(--k-surface-2)]",

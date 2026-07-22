@@ -42,6 +42,8 @@ describe.runIf(RUN)("render pipeline (live Neon + R2 + resvg)", () => {
   let projectId: string;
   let versionId: string;
   let jobId: string;
+  let gallerySlug: string | undefined;
+  let galleryJobId: string | undefined;
 
   const photo = (r: number, g: number, b: number) =>
     sharp({ create: { width: 120, height: 120, channels: 3, background: { r, g, b } } })
@@ -64,6 +66,11 @@ describe.runIf(RUN)("render pipeline (live Neon + R2 + resvg)", () => {
       await putObject(key, readFileSync(SYSTEM_FONT), "font/ttf");
       await sql`insert into fonts(id, organization_id, name, family, weight, style, r2_key, created_at)
         values(${fontId}, ${orgId}, 'Arial', 'Arial', 400, 'normal', ${key}, now())`;
+
+      gallerySlug = `rtest-gallery-${stamp}`;
+      const galleryDocument = buildDocument(fontId);
+      await sql`insert into gallery_templates(id, slug, name, category, document, is_published, created_at)
+        values(${crypto.randomUUID()}, ${gallerySlug}, 'Student ID', 'Student ID', ${galleryDocument}, true, now())`;
     }
 
     const document = buildDocument(fontId);
@@ -83,11 +90,19 @@ describe.runIf(RUN)("render pipeline (live Neon + R2 + resvg)", () => {
     await ingestZip(scope, projectId, await zip.generateAsync({ type: "uint8array" }));
 
     jobId = await repo.jobs.create({ projectId, designVersionId: versionId, total: 2 });
+
+    if (hasFont && gallerySlug) {
+      const forked = await repo.templates.createFromGallery({ slug: gallerySlug });
+      const forkProjectId = await repo.projects.create({ name: "rtest gallery project", templateId: forked.templateId });
+      await ingestCsvRows(scope, forkProjectId, [{ card_id: "G001", name: "Gallery User" }]);
+      galleryJobId = await repo.jobs.create({ projectId: forkProjectId, designVersionId: forked.versionId, total: 1 });
+    }
   }, 60_000);
 
   afterAll(async () => {
     const objects = await listPrefix(keys.orgPrefix(orgId)).catch(() => []);
     if (objects.length) await deleteObjects(objects).catch(() => {});
+    if (gallerySlug) await sql`delete from gallery_templates where slug = ${gallerySlug}`;
     await sql`delete from organization where id = ${orgId}`;
     await sql`delete from "user" where id = ${userId}`;
   });
@@ -129,6 +144,13 @@ describe.runIf(RUN)("render pipeline (live Neon + R2 + resvg)", () => {
     const [job] = await sql`select warnings from jobs where id = ${jobId}`;
     const warnings = job.warnings as Array<{ kind: string }>;
     expect(warnings.filter((w) => w.kind === "font-missing")).toEqual([]);
+  });
+
+  it("renders a gallery-forked template that references a custom font", async () => {
+    if (!hasFont || !galleryJobId) return;
+    const result = await renderJobInline(orgId, galleryJobId);
+    expect(result.cardCount).toBe(1);
+    expect(result.warnings.filter((w) => w.kind === "font-missing")).toEqual([]);
   });
 });
 

@@ -14,7 +14,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 
 import { IRToReact } from "@/lib/design/render/emit-react";
 import { buildDocumentIR } from "@/lib/design/render/build";
-import { createClientResolver } from "@/lib/design/render/resolver.client";
+import { createClientResolver, type ClientFont } from "@/lib/design/render/resolver.client";
 import { rotatedBounds, unionRects } from "@/lib/design/geometry";
 import type { CardDocument, DesignNode } from "@/lib/design/schema";
 import { addCode, addShape, addText, cloneNode, findNode, mutateSelected, selectedNodes, walk } from "@/lib/editor/operations";
@@ -22,14 +22,20 @@ import { useDocumentStore } from "@/lib/editor/document-store";
 import { useUiStore } from "@/lib/editor/ui-store";
 import { cn } from "@/lib/utils";
 
-type EditorProps = { templateId: string; name: string; version: number; document: CardDocument };
+type EditorProps = {
+  templateId: string;
+  name: string;
+  version: number;
+  document: CardDocument;
+  fonts: ClientFont[];
+};
 type Drag = { x: number; y: number; ids: string[] } | null;
 
 function IconButton({ label, children, onClick, active = false }: { label: string; children: React.ReactNode; onClick: () => void; active?: boolean }) {
   return <button type="button" title={label} aria-label={label} onClick={onClick} className={cn("grid size-8 place-items-center rounded-md text-[var(--k-text-muted)] hover:bg-[var(--k-surface-2)] hover:text-[var(--k-text)]", active && "bg-[var(--k-accent-soft)] text-[var(--k-accent)]")}>{children}</button>;
 }
 
-export default function Editor({ templateId, name, version, document: initialDocument }: EditorProps) {
+export default function Editor({ templateId, name, version, document: initialDocument, fonts }: EditorProps) {
   const load = useDocumentStore((state) => state.load);
   const document = useDocumentStore((state) => state.document);
   const mutate = useDocumentStore((state) => state.mutate);
@@ -51,7 +57,7 @@ export default function Editor({ templateId, name, version, document: initialDoc
   const [saveState, setSaveState] = useState<"saved" | "saving" | "conflict" | "error">("saved");
   const [baseVersion, setBaseVersion] = useState(version);
   const drag = useRef<Drag>(null);
-  const resolver = useMemo(() => createClientResolver(), []);
+  const resolver = useMemo(() => createClientResolver({ fonts }), [fonts]);
 
   useEffect(() => {
     load(initialDocument);

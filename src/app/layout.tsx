@@ -20,6 +20,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL ?? "https://quickards.iamdex.codes",
+  ),
   title: {
     default: "QuicKards — Bulk ID Card Generator",
     template: "%s · QuicKards",

@@ -2,18 +2,29 @@
 // QUICKARDS — Editor font list
 // ============================================
 //
-// The editor needs names and faces but never storage keys. Font byte downloads
-// remain a Phase 9 concern, when the upload/library flow is added.
+// The editor needs names and temporary download URLs, but never raw storage
+// keys. The browser fetches font bytes directly from R2 with presigned GETs.
 
 import { requireOrgScope } from "@/lib/auth/session";
 import { scoped } from "@/lib/db/scope";
 import { errorResponse } from "@/lib/http/errors";
+import { presignDownload } from "@/lib/storage/presign";
 
 export const runtime = "nodejs";
 
 export async function GET() {
   try {
     const fonts = await scoped(await requireOrgScope()).fonts.list();
-    return Response.json({ fonts: fonts.map(({ id, name, family, weight, style }) => ({ id, name, family, weight, style })) });
+    const faces = await Promise.all(
+      fonts.map(async ({ id, name, family, weight, style, r2Key }) => ({
+        id,
+        name,
+        family,
+        weight,
+        style,
+        href: await presignDownload(r2Key, { expiresIn: 900 }),
+      })),
+    );
+    return Response.json({ fonts: faces });
   } catch (error) { return errorResponse(error); }
 }

@@ -19,6 +19,8 @@ QuicKards is a production-focused SaaS starter for colleges, festivals, events, 
 - CSV import with robust `card_id` field matching
 - ZIP image mapping by `card_id`
 - Batch render pipeline → PDF + ZIP output
+- Public starter gallery with one-click template fork
+- Custom font library with direct-to-R2 upload
 - Teams/organizations with per-tenant isolation
 - Background render queue (no inline request-timeout limits)
 

@@ -9,10 +9,11 @@ export const metadata: Metadata = { title: "Sign up" };
 export default function SignUpPage() {
   return (
     <div>
-      <Card className="p-6">
-        <h1 className="text-lg font-semibold">Create your account</h1>
-        <p className="mb-5 mt-1 text-sm text-[var(--k-text-muted)]">
-          A personal workspace is set up automatically.
+      <Card className="p-6 sm:p-8">
+        <p className="qk-kicker">Start creating</p>
+        <h1 className="mt-2 text-2xl font-bold tracking-tight">Create your workspace</h1>
+        <p className="mb-7 mt-2 text-sm leading-6 text-[var(--k-text-muted)]">
+          Your personal workspace is ready as soon as you sign up.
         </p>
         <AuthForm mode="sign-up" />
       </Card>

@@ -30,6 +30,7 @@ import {
   cardData,
   designVersions,
   fonts,
+  galleryTemplates,
   jobs,
   projectStatus,
   projects,
@@ -131,6 +132,19 @@ export function scoped(scope: OrgScope) {
           createdByUserId: scope.userId,
         });
 
+        return { templateId, versionId };
+      },
+
+      /** Fork a published starter into this organization's immutable version
+       * history. The gallery source is public; the resulting template is not. */
+      createFromGallery: async (input: { slug: string; name?: string }) => {
+        const source = await db.select().from(galleryTemplates).where(and(eq(galleryTemplates.slug, input.slug), eq(galleryTemplates.isPublished, true))).limit(1);
+        const gallery = source[0];
+        if (!gallery) throw new OrgScopeError(`Gallery template ${input.slug} not found`);
+        const templateId = randomUUID();
+        const versionId = randomUUID();
+        await db.insert(templates).values({ id: templateId, organizationId: scope.organizationId, createdByUserId: scope.userId, name: input.name?.trim() || `${gallery.name} copy`, currentVersionId: versionId, galleryTemplateId: gallery.id });
+        await db.insert(designVersions).values({ id: versionId, templateId, version: 1, document: gallery.document, createdByUserId: scope.userId });
         return { templateId, versionId };
       },
 
@@ -452,6 +466,10 @@ export function scoped(scope: OrgScope) {
 
     fonts: {
       list: () => db.select().from(fonts).where(inOrg.fonts).orderBy(fonts.name),
+      create: async (input: { id: string; name: string; family: string; weight: number; style: "normal" | "italic"; r2Key: string }) => {
+        await db.insert(fonts).values({ ...input, organizationId: scope.organizationId, createdByUserId: scope.userId });
+        return input.id;
+      },
     },
   };
 }

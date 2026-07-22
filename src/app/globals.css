@@ -90,7 +90,7 @@ body {
    ============================================ */
 
 [data-app-theme] {
-  --k-radius: 12px;
+  --k-radius: 14px;
   --k-accent: #dc2626;
   --k-accent-hover: #ef4444;
   --k-accent-fg: #ffffff;
@@ -105,13 +105,14 @@ body {
      glowing. Figma and Canva both pin this. Do not theme this token. */
   --k-stage: #8a8a8e;
   --k-stage-grid: rgba(0, 0, 0, 0.06);
+  --k-ring: 0 0 0 4px var(--k-accent-soft);
 
   color: var(--k-text);
   background: var(--k-bg);
 }
 
 [data-app-theme="light"] {
-  --k-bg: #f7f7f8;
+  --k-bg: #f6f6f8;
   --k-surface: #ffffff;
   --k-surface-2: #f1f1f3;
   --k-surface-hover: #ececef;
@@ -120,7 +121,7 @@ body {
   --k-text-faint: #8a8fa0;
   --k-border: rgba(11, 11, 12, 0.1);
   --k-border-strong: rgba(11, 11, 12, 0.16);
-  --k-shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 10px 30px rgba(16, 24, 40, 0.08);
+  --k-shadow: 0 1px 2px rgba(16, 24, 40, 0.05), 0 18px 44px rgba(16, 24, 40, 0.07);
   color-scheme: light;
 }
 
@@ -134,7 +135,7 @@ body {
   --k-text-faint: #6b6f7a;
   --k-border: rgba(255, 255, 255, 0.1);
   --k-border-strong: rgba(255, 255, 255, 0.16);
-  --k-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 14px 44px rgba(0, 0, 0, 0.45);
+  --k-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 18px 50px rgba(0, 0, 0, 0.42);
   color-scheme: dark;
 }
 
@@ -148,6 +149,40 @@ body {
 [data-app-theme] input::placeholder,
 [data-app-theme] textarea::placeholder {
   color: var(--k-text-faint);
+}
+
+/* Shared app-surface details. These sit behind content without changing the
+   editor's deliberately neutral stage. */
+.qk-app-shell {
+  background-image:
+    radial-gradient(circle at 0% 0%, var(--k-accent-soft), transparent 26rem),
+    radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--k-surface-2) 72%, transparent), transparent 30rem);
+}
+
+.qk-panel-hover {
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease, background-color 180ms ease;
+}
+
+.qk-panel-hover:hover {
+  border-color: var(--k-accent-border);
+  box-shadow: var(--k-shadow), 0 0 0 1px var(--k-accent-soft);
+  transform: translateY(-2px);
+}
+
+.qk-kicker {
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 0.6875rem;
+  font-weight: 750;
+  color: var(--k-accent);
+}
+
+.qk-status-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 9999px;
+  background: currentColor;
+  box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 14%, transparent);
 }
 
 /* ============================================

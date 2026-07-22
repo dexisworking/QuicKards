@@ -22,9 +22,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const theme = await getAppTheme();
 
   return (
-    <div id="qk-app" data-app-theme={theme} className="min-h-dvh bg-[var(--k-bg)] text-[var(--k-text)]">
+    <div id="qk-app" data-app-theme={theme} className="qk-app-shell min-h-dvh bg-[var(--k-bg)] text-[var(--k-text)]">
       <AppNav user={user} theme={theme} />
-      <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6">{children}</main>
+      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">{children}</main>
     </div>
   );
 }

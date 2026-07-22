@@ -2,7 +2,7 @@
 // QUICKARDS — Projects list
 // ============================================
 
-import { FileImage, Plus } from "lucide-react";
+import { ArrowRight, FileImage, Plus } from "lucide-react";
 import Link from "next/link";
 
 import EmptyState from "@/components/app/EmptyState";
@@ -48,22 +48,20 @@ export default async function ProjectsPage() {
           }
         />
       ) : (
-        <ul className="divide-y divide-[var(--k-border)] overflow-hidden rounded-[calc(var(--k-radius)+4px)] border border-[var(--k-border)] bg-[var(--k-surface)]">
+        <ul className="overflow-hidden rounded-[calc(var(--k-radius)+4px)] border border-[var(--k-border)] bg-[var(--k-surface)] shadow-[var(--k-shadow)]">
           {projects.map((project) => (
             <li key={project.id}>
               <Link
                 href={`/projects/${project.id}`}
-                className="flex items-center justify-between px-5 py-4 transition-colors hover:bg-[var(--k-surface-hover)]"
+                className="group flex items-center justify-between gap-4 border-b border-[var(--k-border)] px-5 py-4 last:border-b-0 transition-colors hover:bg-[var(--k-surface-hover)] sm:px-6"
               >
-                <div>
-                  <div className="font-medium">{project.name}</div>
-                  <div className="text-xs text-[var(--k-text-muted)]">
+                <div className="flex min-w-0 items-center gap-3"><div className="grid size-10 shrink-0 place-items-center rounded-[var(--k-radius)] bg-[var(--k-accent-soft)] text-[var(--k-accent)]"><FileImage className="size-4" /></div><div className="min-w-0">
+                  <div className="truncate font-semibold">{project.name}</div>
+                  <div className="mt-0.5 text-xs text-[var(--k-text-muted)]">
                     Updated {new Date(project.updatedAt).toLocaleDateString()}
                   </div>
-                </div>
-                <span className="rounded-full bg-[var(--k-surface-2)] px-3 py-1 text-xs text-[var(--k-text-muted)]">
-                  {STATUS_LABEL[project.status] ?? project.status}
-                </span>
+                </div></div>
+                <div className="flex shrink-0 items-center gap-3"><ProjectStatus status={project.status} /><ArrowRight className="size-4 text-[var(--k-text-faint)] transition-transform group-hover:translate-x-1 group-hover:text-[var(--k-accent)]" /></div>
               </Link>
             </li>
           ))}
@@ -71,4 +69,12 @@ export default async function ProjectsPage() {
       )}
     </div>
   );
+}
+
+function ProjectStatus({ status }: { status: string }) {
+  const isRendered = status === "rendered";
+  const isFailed = status === "failed";
+  const isWorking = status === "rendering";
+  const tone = isRendered ? "text-[var(--k-success)] bg-[color-mix(in_srgb,var(--k-success)_10%,transparent)]" : isFailed ? "text-[var(--k-danger)] bg-[color-mix(in_srgb,var(--k-danger)_10%,transparent)]" : isWorking ? "text-[var(--k-warning)] bg-[color-mix(in_srgb,var(--k-warning)_10%,transparent)]" : "text-[var(--k-text-muted)] bg-[var(--k-surface-2)]";
+  return <span className={`hidden items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium sm:inline-flex ${tone}`}><span className="qk-status-dot" />{STATUS_LABEL[status] ?? status}</span>;
 }

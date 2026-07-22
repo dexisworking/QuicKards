@@ -22,6 +22,18 @@ import { createPersonalOrg } from "@/lib/db/onboarding";
 import * as authSchema from "@/lib/db/schema/auth";
 
 export const auth = betterAuth({
+  // Allow requests from the production domain, the configured app URL,
+  // localhost aliases, and Vercel preview deployments. Without this, Better
+  // Auth's CSRF check rejects any origin that doesn't exactly match
+  // BETTER_AUTH_URL.
+  trustedOrigins: [
+    "https://quickards.iamdex.codes",
+    process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    ...(process.env.VERCEL_URL ? [`https://${process.env.VERCEL_URL}`] : []),
+  ],
+
   database: drizzleAdapter(db, {
     provider: "pg",
     // Explicit because our `db` is created without a schema map (see
