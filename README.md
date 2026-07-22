@@ -5,23 +5,31 @@
 QuicKards is a production-focused SaaS starter for colleges, festivals, events, and orgs that need fast, branded ID card generation at scale.
 
 
+> **Status: v2 rebuild in progress.** The backend is being migrated off
+> Appwrite to Neon (Postgres) + Better Auth + Cloudflare R2, and the editor is
+> being rebuilt around a single shared SVG renderer. See
+> [`docs/APPWRITE-REMOVAL.md`](docs/APPWRITE-REMOVAL.md) for the decommission
+> plan. Some legacy Appwrite routes under `/api/v1` still exist and are removed
+> phase by phase as their v2 replacements land.
+
 ## Highlights
 
-- Drag-and-drop template editor (Fabric.js)
-- CSV import with robust field matching
-- Single image and ZIP image mapping by `card_id`
-- Batch preview + full render pipeline
-- PDF + ZIP output generation
-- Authenticated multi-user backend with Appwrite
-- Auto-expiry policy for projects/templates (36 hours)
+- Canva-style template editor built on one document model that drives both the
+  editor and server-side rendering (no more editor/renderer drift)
+- CSV import with robust `card_id` field matching
+- ZIP image mapping by `card_id`
+- Batch render pipeline → PDF + ZIP output
+- Teams/organizations with per-tenant isolation
+- Background render queue (no inline request-timeout limits)
 
 ## Tech Stack
 
-- **Frontend:** Next.js (App Router), React, Tailwind CSS, Framer Motion
-- **Editor:** Fabric.js
-- **Backend:** Next.js Route Handlers (`/api/v1`)
-- **Storage + Auth + DB:** Appwrite
-- **Rendering:** sharp, pdf-lib, archiver, qrcode
+- **Frontend:** Next.js 16 (App Router), React 19, Tailwind CSS v4, Framer Motion
+- **Database:** Neon (Postgres) + Drizzle ORM
+- **Auth:** Better Auth (organization plugin), sessions in Postgres
+- **Blob storage:** Cloudflare R2 (S3-compatible, presigned URLs)
+- **Render queue:** Inngest
+- **Rendering:** `@resvg/resvg-js` (SVG → PNG), sharp, pdf-lib, archiver, qrcode
 
 ## Quick Start
 
@@ -31,64 +39,50 @@ QuicKards is a production-focused SaaS starter for colleges, festivals, events, 
 npm install
 ```
 
-2. Create environment file
+2. Create your environment file and fill it in — see
+   [`docs/SETUP.md`](docs/SETUP.md) for where each value comes from (Neon, R2,
+   Inngest, Stripe).
 
 ```bash
 cp .env.example .env.local
 ```
 
-3. Fill `.env.local` with Appwrite values (project, endpoint, API key, DB/bucket IDs)
-
-4. Bootstrap Appwrite resources
+3. Apply the database schema to your Neon database
 
 ```bash
-node --env-file=.env.local ./scripts/setup-appwrite.mjs
+npx drizzle-kit migrate
 ```
 
-5. Run locally
+4. Run locally
 
 ```bash
 npm run dev
 ```
 
-App runs at `http://localhost:3000`.
+App runs at `http://localhost:3000`. Verify the database connection at
+`http://localhost:3000/api/health`.
 
 ## Environment Variables
 
-Core values expected by QuicKards:
+See [`.env.example`](.env.example) for the full list and
+[`docs/SETUP.md`](docs/SETUP.md) for where each value comes from. In brief:
 
-- `NEXT_PUBLIC_APPWRITE_ENDPOINT`
-- `NEXT_PUBLIC_APPWRITE_PROJECT_ID`
-- `APPWRITE_API_KEY`
-- `APPWRITE_DATABASE_ID`
-- `APPWRITE_TEMPLATES_COLLECTION_ID`
-- `APPWRITE_PROJECTS_COLLECTION_ID`
-- `APPWRITE_CARD_DATA_COLLECTION_ID`
-- `APPWRITE_ASSETS_COLLECTION_ID`
-- `APPWRITE_JOBS_COLLECTION_ID`
-- `APPWRITE_TEMPLATE_BUCKET_ID`
-- `APPWRITE_IMAGE_BUCKET_ID`
-- `APPWRITE_OUTPUT_BUCKET_ID`
-- `APPWRITE_SESSION_COOKIE_NAME`
-
-## API Overview
-
-Base path: `/api/v1`
-
-- **Auth:** `POST /auth/signin`, `POST /auth/signup`, `POST /auth/signout`, `GET /auth/me`
-- **Templates:** `POST/GET /templates`, `GET/PATCH/DELETE /templates/:id`, `POST /templates/:id/background`
-- **Projects:** `POST/GET /projects`, `GET/DELETE /projects/:id`
-- **CSV Data:** `POST/GET /projects/:id/data`
-- **Images:** `POST /projects/:id/images/zip`, `POST /projects/:id/images`, `GET /projects/:id/images/:card_id`
-- **Rendering:** `POST /projects/:id/preview`, `POST /projects/:id/render`, `GET /jobs/:job_id`
-- **Downloads:** `GET /downloads/:file_id`
+- **Database:** `DATABASE_URL` (Neon pooled connection string)
+- **Auth:** `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `NEXT_PUBLIC_APP_URL`
+- **Blob storage:** `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`
+- **Render queue (Phase 5):** `INNGEST_EVENT_KEY`, `INNGEST_SIGNING_KEY`
+- **Billing (Phase 8):** `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
 
 ## Production Notes
 
-- Rendering is **server-side only** (no client rendering pipeline).
-- Keep Appwrite tables/buckets private; access is enforced through authenticated API handlers.
-- Output file IDs are stored in job records and streamed through `/api/v1/downloads/:file_id`.
-- If your Appwrite plan limits bucket count, you can reuse one bucket by pointing all three bucket env vars to the same ID.
+- Rendering is **server-side**, driven by the same document model the editor
+  uses (`src/lib/design`) so on-screen and printed output cannot diverge.
+- Every app table is scoped by `organizationId`; queries go through the
+  lint-enforced scoped repository in `src/lib/db/scope.ts`.
+- Card images and render outputs live in R2 and are served via presigned URLs —
+  bytes are not proxied through the app server.
+- Schema changes: edit `src/lib/db/schema`, then `npx drizzle-kit generate`
+  and `npx drizzle-kit migrate`.
 
 ## Scripts
 
