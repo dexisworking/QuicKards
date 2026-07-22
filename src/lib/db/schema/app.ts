@@ -62,6 +62,20 @@ export const assetKind = pgEnum("asset_kind", [
 
 export const fontStyle = pgEnum("font_style", ["normal", "italic"]);
 
+/** Razorpay owns the remote lifecycle; this records the normalized local state
+ * used by product entitlements without coupling usage enforcement to a live
+ * payment-provider request. */
+export const subscriptionStatus = pgEnum("subscription_status", [
+  "created",
+  "authenticated",
+  "active",
+  "pending",
+  "halted",
+  "cancelled",
+  "completed",
+  "expired",
+]);
+
 // ── Shared column helpers ───────────────────────────────────────────────────
 
 const ts = (name: string) => timestamp(name, { withTimezone: true });
@@ -261,6 +275,42 @@ export const usageCounters = pgTable(
     updatedAt: ts("updated_at").notNull().defaultNow(),
   },
   (t) => [uniqueIndex("usage_org_period_idx").on(t.organizationId, t.periodStart)],
+);
+
+// ── Billing (organization subscriptions, never user subscriptions) ─────────
+
+export const subscriptions = pgTable(
+  "subscriptions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: orgId(),
+    /** Code-defined tier key; limits live in lib/billing/plans.ts. */
+    planKey: text("plan_key").notNull().default("free"),
+    razorpaySubscriptionId: text("razorpay_subscription_id").unique(),
+    razorpayPlanId: text("razorpay_plan_id"),
+    status: subscriptionStatus("status").notNull().default("created"),
+    currentPeriodStart: ts("current_period_start"),
+    currentPeriodEnd: ts("current_period_end"),
+    seats: integer("seats").notNull().default(1),
+    createdAt: ts("created_at").notNull().defaultNow(),
+    updatedAt: ts("updated_at").notNull().defaultNow(),
+  },
+  (t) => [index("subscriptions_org_status_idx").on(t.organizationId, t.status)],
+);
+
+/** Razorpay retries webhook delivery. Persisting the provider event id before
+ * processing makes the entire subscription projection idempotent. */
+export const billingWebhookEvents = pgTable(
+  "billing_webhook_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    providerEventId: text("provider_event_id").notNull(),
+    event: text("event").notNull(),
+    payload: jsonb("payload").$type<Record<string, unknown>>().notNull(),
+    receivedAt: ts("received_at").notNull().defaultNow(),
+    processedAt: ts("processed_at"),
+  },
+  (t) => [uniqueIndex("billing_webhook_event_id_idx").on(t.providerEventId)],
 );
 
 // ── Gallery (public starter templates) ───────────────────────────────────────
