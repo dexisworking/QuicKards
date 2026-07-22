@@ -87,6 +87,26 @@ export function scoped(scope: OrgScope) {
         return rows[0] ?? null;
       },
 
+      /** The editor reads the template and its pinned head together. Keeping
+       *  this join in the scoped repository prevents a route from accidentally
+       *  loading a version belonging to a different organization. */
+      withCurrentDocument: async (id: string) => {
+        const rows = await db
+          .select({
+            id: templates.id,
+            name: templates.name,
+            updatedAt: templates.updatedAt,
+            currentVersionId: templates.currentVersionId,
+            version: designVersions.version,
+            document: designVersions.document,
+          })
+          .from(templates)
+          .innerJoin(designVersions, eq(designVersions.id, templates.currentVersionId))
+          .where(and(eq(templates.id, id), inOrg.templates))
+          .limit(1);
+        return rows[0] ?? null;
+      },
+
       /** Create a template and its first design version together, pointing the
        *  head at that version. Two inserts rather than a transaction because
        *  the HTTP driver has no interactive transactions — a version orphaned
@@ -113,6 +133,62 @@ export function scoped(scope: OrgScope) {
 
         return { templateId, versionId };
       },
+
+      /**
+       * Append-only document save with compare-and-swap semantics. A version
+       * is never overwritten: renders can retain the old pointer while the
+       * editor advances the template head. The conditional head update is the
+       * concurrency guard available with Neon's non-interactive HTTP driver.
+       */
+      updateDocument: async (input: {
+        id: string;
+        baseVersion: number;
+        document: CardDocument;
+      }) => {
+        const current = await db
+          .select({ id: templates.id, versionId: designVersions.id, version: designVersions.version })
+          .from(templates)
+          .innerJoin(designVersions, eq(designVersions.id, templates.currentVersionId))
+          .where(and(eq(templates.id, input.id), inOrg.templates))
+          .limit(1);
+
+        const head = current[0];
+        if (!head) throw new OrgScopeError(`Template ${input.id} not found in this organization`);
+        if (head.version !== input.baseVersion) return { ok: false as const, version: head.version };
+
+        const versionId = randomUUID();
+        await db.insert(designVersions).values({
+          id: versionId,
+          templateId: input.id,
+          version: head.version + 1,
+          document: input.document,
+          createdByUserId: scope.userId,
+        });
+
+        const advanced = await db
+          .update(templates)
+          .set({ currentVersionId: versionId, updatedAt: new Date() })
+          .where(
+            and(
+              eq(templates.id, input.id),
+              inOrg.templates,
+              eq(templates.currentVersionId, head.versionId),
+            ),
+          )
+          .returning({ id: templates.id });
+
+        // A concurrently saved version won the compare-and-swap. The just
+        // inserted version is harmlessly unreferenced and can be reaped later.
+        return advanced.length > 0
+          ? { ok: true as const, version: head.version + 1, versionId }
+          : { ok: false as const, version: head.version };
+      },
+
+      rename: (id: string, name: string) =>
+        db
+          .update(templates)
+          .set({ name, updatedAt: new Date() })
+          .where(and(eq(templates.id, id), inOrg.templates)),
 
       archive: (id: string) =>
         db
@@ -229,6 +305,35 @@ export function scoped(scope: OrgScope) {
     },
 
     assets: {
+      /** Create an org-owned template asset before its direct-to-R2 upload.
+       *  The asset id is the stable document reference; the browser only gets
+       *  a presigned URL and never receives storage credentials. */
+      createTemplateAsset: async (input: {
+        id?: string;
+        templateId: string;
+        r2Key: string;
+        contentType: string;
+        byteSize?: number;
+      }) => {
+        const template = await db
+          .select({ id: templates.id })
+          .from(templates)
+          .where(and(eq(templates.id, input.templateId), inOrg.templates))
+          .limit(1);
+        if (template.length === 0) {
+          throw new OrgScopeError(`Template ${input.templateId} not found in this organization`);
+        }
+        const id = input.id ?? randomUUID();
+        await db.insert(assets).values({
+          id,
+          organizationId: scope.organizationId,
+          kind: "background",
+          r2Key: input.r2Key,
+          contentType: input.contentType,
+          byteSize: input.byteSize,
+        });
+        return id;
+      },
       /**
        * Upsert per-card photo pointers, one row per card_id.
        *
