@@ -18,9 +18,11 @@
 // SELECT land in different sessions and the policy sees nothing. The repository
 // pattern is sufficient when lint-enforced; RLS is revisited in Phase 11.)
 
-import { and, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 
-import { newId } from "@/lib/design/id";
+import { randomUUID } from "node:crypto";
+
+import type { RenderWarning } from "@/lib/design/render/ir";
 import type { CardDocument } from "@/lib/design/schema";
 import { db } from "./client";
 import {
@@ -90,8 +92,8 @@ export function scoped(scope: OrgScope) {
        *  the HTTP driver has no interactive transactions — a version orphaned
        *  by a failure between them is harmless (unreferenced) and swept later. */
       create: async (input: { name: string; document: CardDocument }) => {
-        const templateId = newId();
-        const versionId = newId();
+        const templateId = randomUUID();
+        const versionId = randomUUID();
 
         await db.insert(templates).values({
           id: templateId,
@@ -119,6 +121,25 @@ export function scoped(scope: OrgScope) {
           .where(and(eq(templates.id, id), inOrg.templates)),
     },
 
+    designVersions: {
+      /** Load a pinned design version, org-checked through its template so a
+       *  job cannot render a version belonging to another tenant. */
+      byId: async (id: string) => {
+        const rows = await db
+          .select({
+            id: designVersions.id,
+            templateId: designVersions.templateId,
+            version: designVersions.version,
+            document: designVersions.document,
+          })
+          .from(designVersions)
+          .innerJoin(templates, eq(designVersions.templateId, templates.id))
+          .where(and(eq(designVersions.id, id), inOrg.templates))
+          .limit(1);
+        return rows[0] ?? null;
+      },
+    },
+
     projects: {
       list: () =>
         db
@@ -137,7 +158,7 @@ export function scoped(scope: OrgScope) {
       },
 
       create: async (input: { name: string; templateId?: string }) => {
-        const id = newId();
+        const id = randomUUID();
         await db.insert(projects).values({
           id,
           organizationId: scope.organizationId,
@@ -256,6 +277,13 @@ export function scoped(scope: OrgScope) {
         await assertOwnsProject(projectId);
         return db.select().from(assets).where(eq(assets.projectId, projectId));
       },
+
+      /** Load specific assets by id (org-filtered) — used by the renderer to
+       *  resolve backgrounds and static images a document references directly. */
+      byIds: async (ids: string[]) => {
+        if (ids.length === 0) return [];
+        return db.select().from(assets).where(and(inArray(assets.id, ids), inOrg.assets));
+      },
     },
 
     jobs: {
@@ -274,7 +302,7 @@ export function scoped(scope: OrgScope) {
         total: number;
       }) => {
         await assertOwnsProject(input.projectId);
-        const id = newId();
+        const id = randomUUID();
         await db.insert(jobs).values({
           id,
           organizationId: scope.organizationId,
@@ -284,6 +312,37 @@ export function scoped(scope: OrgScope) {
         });
         return id;
       },
+
+      setRunning: (id: string) =>
+        db
+          .update(jobs)
+          .set({ status: "running", progress: 0 })
+          .where(and(eq(jobs.id, id), inOrg.jobs)),
+
+      /** Increment finished-card count. `sql` so concurrent batch steps add up
+       *  atomically rather than clobbering each other's read-modify-write. */
+      bumpProgress: (id: string, delta: number) =>
+        db
+          .update(jobs)
+          .set({ progress: sql`${jobs.progress} + ${delta}` })
+          .where(and(eq(jobs.id, id), inOrg.jobs)),
+
+      complete: (id: string, output: { outputR2Key: string; warnings: RenderWarning[] }) =>
+        db
+          .update(jobs)
+          .set({
+            status: "completed",
+            outputR2Key: output.outputR2Key,
+            warnings: output.warnings,
+            completedAt: new Date(),
+          })
+          .where(and(eq(jobs.id, id), inOrg.jobs)),
+
+      fail: (id: string, error: string) =>
+        db
+          .update(jobs)
+          .set({ status: "failed", error, completedAt: new Date() })
+          .where(and(eq(jobs.id, id), inOrg.jobs)),
     },
 
     fonts: {
