@@ -151,72 +151,141 @@ body {
   color: var(--k-text-faint);
 }
 
-/* Shared app-surface details. These sit behind content without changing the
-   editor's deliberately neutral stage. */
+/* ============================================
+   PRODUCTION SPEC-SHEET LANGUAGE
+   ============================================
+   QuicKards manufactures physical cards, so the visual language is borrowed
+   from print production: crop marks, registration corners, spec annotations,
+   hairline rules, tabular figures. Deliberate constraints, because they are
+   what separate a designed interface from a generated one:
+
+     - No gradient text. Hierarchy comes from scale and weight, not colour ramps.
+     - No glowing blobs. Depth comes from hairlines and grain.
+     - Red is a SIGNAL, not decoration — the primary action, the registration
+       marks, one rule. Everything else is monochrome.
+     - Big typographic jumps (a 76px display beside an 11px label), never a
+       mush of 14-16px.
+   ============================================ */
+
+/* Display type: tight tracking, near-solid leading. Only for real headlines. */
+.qk-display {
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 0.95;
+}
+
+/* The signature annotation style — spec-sheet labels. Used for eyebrows,
+   column heads, and metadata, never for body copy. */
+.qk-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+/* Every number in the product is data. Tabular figures stop columns of digits
+   from shifting as values change. */
+.qk-num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* Crop marks: eight hairlines forming L-shapes at the four corners, exactly as
+   they sit on a press sheet. One pseudo-element, no extra DOM. */
+.qk-crop {
+  position: relative;
+}
+.qk-crop::before {
+  content: "";
+  position: absolute;
+  inset: -0.75rem;
+  pointer-events: none;
+  --mark: var(--color-red);
+  background:
+    linear-gradient(var(--mark), var(--mark)) top left / 14px 1px no-repeat,
+    linear-gradient(var(--mark), var(--mark)) top left / 1px 14px no-repeat,
+    linear-gradient(var(--mark), var(--mark)) top right / 14px 1px no-repeat,
+    linear-gradient(var(--mark), var(--mark)) top right / 1px 14px no-repeat,
+    linear-gradient(var(--mark), var(--mark)) bottom left / 14px 1px no-repeat,
+    linear-gradient(var(--mark), var(--mark)) bottom left / 1px 14px no-repeat,
+    linear-gradient(var(--mark), var(--mark)) bottom right / 14px 1px no-repeat,
+    linear-gradient(var(--mark), var(--mark)) bottom right / 1px 14px no-repeat;
+}
+
+/* Paper grain. Almost invisible on its own; the thing that stops large dark
+   areas reading as flat digital fill. */
+.qk-grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Ruled list: rows divided by hairlines instead of boxed in cards. The single
+   biggest change away from the generated-looking card grid. */
+.qk-ruled > * + * {
+  border-top: 1px solid var(--color-rule);
+}
+
+/* App-surface equivalents (the --k-* themed side). */
 .qk-app-shell {
-  background-image:
-    radial-gradient(circle at 0% 0%, var(--k-accent-soft), transparent 26rem),
-    radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--k-surface-2) 72%, transparent), transparent 30rem);
+  background-image: none;
 }
 
 .qk-panel-hover {
-  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease, background-color 180ms ease;
+  transition: border-color 160ms ease, background-color 160ms ease;
 }
-
 .qk-panel-hover:hover {
-  border-color: var(--k-accent-border);
-  box-shadow: var(--k-shadow), 0 0 0 1px var(--k-accent-soft);
-  transform: translateY(-2px);
+  border-color: var(--k-border-strong);
+  background-color: var(--k-surface-hover);
 }
 
 .qk-kicker {
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
   font-size: 0.6875rem;
-  font-weight: 750;
-  color: var(--k-accent);
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--k-text-faint);
 }
 
 .qk-status-dot {
-  width: 0.45rem;
-  height: 0.45rem;
+  width: 0.4rem;
+  height: 0.4rem;
   border-radius: 9999px;
   background: currentColor;
-  box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 14%, transparent);
 }
 
-/* ============================================
-   SIGNATURE UTILITIES (from DexForge)
-   ============================================ */
+.qk-ruled-app > * + * {
+  border-top: 1px solid var(--k-border);
+}
 
+/* Retained so existing markup keeps compiling; deliberately no longer a
+   gradient — flat signal colour instead. */
 .gradient-text-red {
-  background: linear-gradient(135deg, #ef4444, #dc2626, #ff6b6b);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
+  color: var(--color-red-accent);
 }
 
 .glass {
-  background: rgba(17, 17, 17, 0.6);
-  backdrop-filter: blur(12px);
-  border: 1px solid var(--color-rule);
+  background: rgba(10, 10, 10, 0.72);
+  backdrop-filter: blur(14px);
 }
 
 .glow-red {
-  box-shadow: var(--shadow-glow-red);
+  box-shadow: none;
 }
 
 .bg-grid {
   background-image:
-    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-  background-size: 48px 48px;
+    linear-gradient(to right, rgba(255, 255, 255, 0.028) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.028) 1px, transparent 1px);
+  background-size: 64px 64px;
 }
 
 .bg-dots {
-  background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
-  background-size: 22px 22px;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 24px 24px;
 }
 
 @media (prefers-reduced-motion: reduce) {

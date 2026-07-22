@@ -2,13 +2,20 @@
 // QUICKARDS — Public template gallery
 // ============================================
 //
-// Published starters are indexable marketing pages, while the fork action
-// creates a private, organization-scoped version through the authenticated API.
+// Published starters are indexable marketing pages; forking creates a private,
+// organization-scoped copy through the authenticated API.
+//
+// Rendered per request rather than prerendered: this page reads from the
+// database, and a build should never depend on the database being reachable
+// (it previously failed a production build for exactly that reason). Server
+// rendering keeps it fully indexable.
 
-import Link from "next/link";
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { gallery } from "@/lib/db/gallery";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "ID card templates",
@@ -18,5 +25,54 @@ export const metadata: Metadata = {
 
 export default async function GalleryPage() {
   const templates = await gallery.list();
-  return <main className="mx-auto max-w-6xl px-4 py-16 sm:px-6"><p className="text-xs font-bold uppercase tracking-[.16em] text-red-accent">Starter gallery</p><h1 className="mt-3 text-4xl font-bold tracking-tight">Start with a design that fits.</h1><p className="mt-3 max-w-2xl text-text-secondary">Fork a starter, adapt it in the editor, then generate your full batch from one shared design.</p><div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{templates.map((template) => <Link key={template.id} href={`/gallery/${template.slug}`} className="group rounded-[var(--radius-lg)] border border-rule bg-surface p-5 transition hover:-translate-y-1 hover:border-red/35"><div className="aspect-[1.586/1] rounded-lg bg-gradient-to-br from-red/30 via-bg-elevated to-surface" /><p className="mt-4 text-xs font-semibold uppercase tracking-wide text-red-accent">{template.category}</p><h2 className="mt-1 font-semibold group-hover:text-red-accent">{template.name}</h2><p className="mt-2 text-sm text-text-muted">Open template →</p></Link>)}</div>{templates.length === 0 && <p className="mt-10 rounded-[var(--radius-lg)] border border-dashed border-rule-light p-8 text-text-secondary">Starter templates will appear here soon.</p>}</main>;
+
+  return (
+    <main>
+      <section className="border-b border-rule">
+        <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-20">
+          <div className="flex items-center gap-3">
+            <span className="h-px w-6 bg-red" aria-hidden />
+            <span className="qk-label text-text-muted">Starter gallery</span>
+          </div>
+          <h1 className="qk-display mt-7 max-w-3xl text-[clamp(2.25rem,5.5vw,3.5rem)]">
+            Start from a card that already works.
+          </h1>
+          <p className="mt-6 max-w-xl text-lg leading-8 text-text-secondary">
+            Fork a starter, adapt it in the editor, then run your whole batch
+            from that one design.
+          </p>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
+        {templates.length === 0 ? (
+          <p className="max-w-md leading-7 text-text-muted">
+            Starter templates are on their way. In the meantime you can design a
+            card from a blank CR80 canvas in the editor.
+          </p>
+        ) : (
+          <ul className="grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+            {templates.map((template) => (
+              <li key={template.id}>
+                <Link href={`/gallery/${template.slug}`} className="group block">
+                  {/* Card-ratio proof surface, quiet by default so a row of
+                      them reads as a contact sheet. */}
+                  <div
+                    className="mb-4 w-full rounded-[6px] border border-rule bg-surface transition-colors group-hover:border-rule-light"
+                    style={{ aspectRatio: 85.6 / 54 }}
+                  />
+                  <div className="flex items-baseline justify-between gap-3">
+                    <h2 className="text-sm font-semibold transition-colors group-hover:text-red-accent">
+                      {template.name}
+                    </h2>
+                    <span className="qk-label text-text-faint">{template.category}</span>
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </main>
+  );
 }

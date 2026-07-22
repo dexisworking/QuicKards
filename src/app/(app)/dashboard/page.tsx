@@ -1,105 +1,140 @@
 // ============================================
-// QUICKARDS — Dashboard
+// QUICKARDS — Overview
 // ============================================
+//
+// A work surface, not a welcome screen. The counts are set as data (tabular
+// figures on a ruled band) and the two lists show what the user actually has,
+// so the page is useful on the second visit as well as the first.
 
-import { ArrowRight, FileImage, LayoutTemplate, Plus, Users } from "lucide-react";
+import { ArrowRight, Plus } from "lucide-react";
 import Link from "next/link";
 
-import PageHeader from "@/components/app/PageHeader";
 import { requireOrgScope } from "@/lib/auth/session";
+import { planFor } from "@/lib/billing/plans";
+import { activePlanKey, usageFor } from "@/lib/db/billing";
 import { scoped } from "@/lib/db/scope";
 
 export default async function DashboardPage() {
   const scope = await requireOrgScope();
   const repo = scoped(scope);
-  const [templates, projects] = await Promise.all([repo.templates.list(), repo.projects.list()]);
+
+  const [templates, projects, planKey, usage] = await Promise.all([
+    repo.templates.list(),
+    repo.projects.list(),
+    activePlanKey(scope.organizationId),
+    usageFor(scope.organizationId),
+  ]);
+  const plan = planFor(planKey);
 
   return (
-    <div className="space-y-8">
-      <PageHeader
-        title="Your workspace"
-        subtitle="A calm place to design, prepare, and deliver every card batch."
-        action={<Link href="/templates/new" className="hidden items-center gap-2 rounded-[var(--k-radius)] bg-[var(--k-accent)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_8px_18px_color-mix(in_srgb,var(--k-accent)_24%,transparent)] sm:inline-flex"><Plus className="size-4" />New template</Link>}
-      />
-
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Stat label="Templates" value={templates.length} icon={<LayoutTemplate className="size-5" />} href="/templates" />
-        <Stat label="Projects" value={projects.length} icon={<FileImage className="size-5" />} href="/projects" />
-        <Stat label="Workspace" value={scope.role} icon={<Users className="size-5" />} href="/settings/organization" />
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-[1.28fr_.72fr]">
-        <div className="rounded-[calc(var(--k-radius)+7px)] border border-[var(--k-accent-border)] bg-[linear-gradient(135deg,var(--k-accent-soft),var(--k-surface)_48%)] p-6 shadow-[var(--k-shadow)] sm:p-8">
-          <p className="qk-kicker">Start here</p>
-          <h2 className="mt-2 text-2xl font-bold tracking-tight">Turn your roster into polished cards.</h2>
-          <p className="mt-2 max-w-xl text-sm leading-6 text-[var(--k-text-muted)]">Create a reusable template first, then feed it a spreadsheet and a folder of photos whenever you need a new batch.</p>
-          <div className="mt-6 flex flex-wrap gap-3"><Link href="/templates/new" className="inline-flex items-center gap-2 rounded-[var(--k-radius)] bg-[var(--k-accent)] px-4 py-2.5 text-sm font-semibold text-white"><Plus className="size-4" />Create template</Link><Link href="/projects/new" className="inline-flex items-center gap-2 rounded-[var(--k-radius)] border border-[var(--k-border)] bg-[var(--k-surface)] px-4 py-2.5 text-sm font-semibold text-[var(--k-text)]">New project <ArrowRight className="size-4" /></Link></div>
+    <div className="space-y-12">
+      <header className="flex flex-wrap items-end justify-between gap-6">
+        <div>
+          <span className="qk-kicker">Workspace</span>
+          <h1 className="qk-display mt-3 text-[clamp(1.9rem,4vw,2.6rem)]">Overview</h1>
         </div>
-        <div className="rounded-[calc(var(--k-radius)+7px)] border border-[var(--k-border)] bg-[var(--k-surface)] p-6 shadow-[var(--k-shadow)]">
-          <p className="qk-kicker">Batch checklist</p>
-          <ol className="mt-4 space-y-4">{["Design or select a template", "Import a CSV and photo ZIP", "Render and download output"].map((step, index) => <li key={step} className="flex items-center gap-3 text-sm"><span className="grid size-6 shrink-0 place-items-center rounded-full bg-[var(--k-surface-2)] text-xs font-bold text-[var(--k-text-muted)]">{index + 1}</span><span>{step}</span></li>)}</ol>
-        </div>
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <ActionCard
-          title="Design a template"
-          description="Lay out a card in the editor — text, photos, QR codes, all data-bindable."
+        <Link
           href="/templates/new"
+          className="inline-flex items-center gap-2 rounded-[var(--k-radius)] bg-[var(--k-accent)] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--k-accent-hover)]"
+        >
+          <Plus className="size-4" />
+          New template
+        </Link>
+      </header>
+
+      {/* Measured band — the same device as the marketing spec strip. The
+          gap-px over a border-coloured background draws exact hairlines
+          between cells at every breakpoint without per-cell border rules. */}
+      <dl className="grid grid-cols-2 gap-px border-y border-[var(--k-border)] bg-[var(--k-border)] lg:grid-cols-4">
+        <Metric label="Templates" value={templates.length} />
+        <Metric label="Batches" value={projects.length} />
+        <Metric
+          label="Cards this month"
+          value={`${usage.used.toLocaleString()} / ${plan.cardsPerPeriod.toLocaleString()}`}
         />
-        <ActionCard
-          title="Start a project"
-          description="Import a CSV and a folder of photos, then render a print-ready batch."
-          href="/projects/new"
+        <Metric label="Plan" value={plan.name} />
+      </dl>
+
+      <div className="grid gap-12 lg:grid-cols-2">
+        <Panel
+          title="Templates"
+          href="/templates"
+          empty="No templates yet — design the card once and reuse it for every batch."
+          items={templates.slice(0, 5).map((template) => ({
+            id: template.id,
+            href: `/templates/${template.id}`,
+            primary: template.name,
+            secondary: new Date(template.updatedAt).toLocaleDateString(),
+          }))}
+        />
+        <Panel
+          title="Batches"
+          href="/projects"
+          empty="No batches yet — a batch pairs a template with your roster and photos."
+          items={projects.slice(0, 5).map((project) => ({
+            id: project.id,
+            href: `/projects/${project.id}`,
+            primary: project.name,
+            secondary: project.status.replaceAll("_", " "),
+          }))}
         />
       </div>
     </div>
   );
 }
 
-function Stat({
-  label,
-  value,
-  icon,
-  href,
-}: {
-  label: string;
-  value: string | number;
-  icon: React.ReactNode;
-  href: string;
-}) {
+function Metric({ label, value }: { label: string; value: string | number }) {
   return (
-    <Link
-      href={href}
-      className="qk-panel-hover flex items-center gap-4 rounded-[calc(var(--k-radius)+4px)] border border-[var(--k-border)] bg-[var(--k-surface)] p-5 shadow-[var(--k-shadow)]"
-    >
-      <div className="grid size-10 place-items-center rounded-[var(--k-radius)] bg-[var(--k-accent-soft)] text-[var(--k-accent)]">
-        {icon}
-      </div>
-      <div className="min-w-0">
-        <div className="text-2xl font-bold capitalize">{value}</div>
-        <div className="text-xs text-[var(--k-text-muted)]">{label}</div>
-      </div>
-    </Link>
+    <div className="bg-[var(--k-bg)] px-5 py-6">
+      <dt className="qk-num text-2xl font-bold capitalize tracking-tight">{value}</dt>
+      <dd className="qk-kicker mt-2">{label}</dd>
+    </div>
   );
 }
 
-function ActionCard({
+function Panel({
   title,
-  description,
   href,
+  items,
+  empty,
 }: {
   title: string;
-  description: string;
   href: string;
+  items: Array<{ id: string; href: string; primary: string; secondary: string }>;
+  empty: string;
 }) {
   return (
-    <Link
-      href={href}
-      className="qk-panel-hover group relative rounded-[calc(var(--k-radius)+4px)] border border-[var(--k-border)] bg-[var(--k-surface)] p-6 shadow-[var(--k-shadow)]"
-    >
-      <h3 className="font-semibold group-hover:text-[var(--k-accent)]">{title}</h3>
-      <p className="mt-1.5 text-sm text-[var(--k-text-muted)]">{description}</p>
-      <ArrowRight className="absolute bottom-6 right-6 size-4 text-[var(--k-text-faint)] transition-transform group-hover:translate-x-1 group-hover:text-[var(--k-accent)]" />
-    </Link>
+    <section>
+      <div className="flex items-baseline justify-between border-b border-[var(--k-border)] pb-3">
+        <h2 className="qk-kicker">{title}</h2>
+        <Link
+          href={href}
+          className="group inline-flex items-center gap-1 text-xs font-medium text-[var(--k-text-muted)] transition-colors hover:text-[var(--k-text)]"
+        >
+          View all
+          <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />
+        </Link>
+      </div>
+
+      {items.length === 0 ? (
+        <p className="max-w-sm py-8 text-sm leading-6 text-[var(--k-text-muted)]">{empty}</p>
+      ) : (
+        <ul className="qk-ruled-app">
+          {items.map((item) => (
+            <li key={item.id}>
+              <Link
+                href={item.href}
+                className="flex items-baseline justify-between gap-4 py-3.5 transition-colors hover:text-[var(--k-accent)]"
+              >
+                <span className="truncate text-sm font-medium">{item.primary}</span>
+                <span className="qk-num shrink-0 text-xs capitalize text-[var(--k-text-faint)]">
+                  {item.secondary}
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }

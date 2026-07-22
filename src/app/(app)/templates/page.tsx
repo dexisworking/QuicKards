@@ -1,13 +1,13 @@
 // ============================================
-// QUICKARDS — Templates list
+// QUICKARDS — Templates
 // ============================================
+//
+// A contact sheet of card faces. Each thumbnail keeps the true CR80 ratio, so
+// the page reads like proofs on a light table rather than a grid of app cards.
 
-import { ArrowUpRight, LayoutTemplate, Plus, Sparkles } from "lucide-react";
+import { Plus } from "lucide-react";
 import Link from "next/link";
 
-import EmptyState from "@/components/app/EmptyState";
-import PageHeader from "@/components/app/PageHeader";
-import Button from "@/components/ui/Button";
 import { requireOrgScope } from "@/lib/auth/session";
 import { scoped } from "@/lib/db/scope";
 
@@ -16,52 +16,61 @@ export default async function TemplatesPage() {
   const templates = await scoped(scope).templates.list();
 
   return (
-    <div className="space-y-7">
-      <PageHeader
-        title="Templates"
-        subtitle="Card designs you render batches from."
-        action={
-          <Button href="/templates/new" icon={<Plus className="size-4" />}>
-            New template
-          </Button>
-        }
-      />
+    <div className="space-y-10">
+      <header className="flex flex-wrap items-end justify-between gap-6 border-b border-[var(--k-border)] pb-6">
+        <div>
+          <span className="qk-kicker">Library</span>
+          <h1 className="qk-display mt-3 text-[clamp(1.9rem,4vw,2.6rem)]">Templates</h1>
+        </div>
+        <Link
+          href="/templates/new"
+          className="inline-flex items-center gap-2 rounded-[var(--k-radius)] bg-[var(--k-accent)] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--k-accent-hover)]"
+        >
+          <Plus className="size-4" />
+          New template
+        </Link>
+      </header>
 
       {templates.length === 0 ? (
-        <EmptyState
-          icon={<LayoutTemplate className="size-8" />}
-          title="No templates yet"
-          description="Design your first card in the editor — text, photos, and QR codes, all bindable to your data."
-          action={
-            <Button href="/templates/new" icon={<Plus className="size-4" />}>
-              New template
-            </Button>
-          }
-        />
+        <div className="max-w-md py-8">
+          <p className="text-sm leading-7 text-[var(--k-text-muted)]">
+            Nothing here yet. A template is the card itself — draw it once, bind
+            the fields to your spreadsheet columns, then reuse it for every batch
+            you ever run.
+          </p>
+          <Link
+            href="/templates/new"
+            className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-[var(--k-accent)] underline-offset-4 hover:underline"
+          >
+            <Plus className="size-4" />
+            Design your first card
+          </Link>
+        </div>
       ) : (
-        <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="grid gap-x-6 gap-y-9 sm:grid-cols-2 lg:grid-cols-3">
           {templates.map((template) => (
             <li key={template.id}>
-              <Link
-                href={`/templates/${template.id}`}
-                className="qk-panel-hover group block overflow-hidden rounded-[calc(var(--k-radius)+4px)] border border-[var(--k-border)] bg-[var(--k-surface)] shadow-[var(--k-shadow)]"
-              >
-                <div className="relative m-3 aspect-[1.586/1] overflow-hidden rounded-[var(--k-radius)] bg-[linear-gradient(135deg,var(--k-surface-2),var(--k-bg))]">
-                  <div className="absolute inset-x-0 top-0 h-1/3 bg-[var(--k-accent)]/85" />
-                  <div className="absolute left-5 top-[42%] size-11 rounded-md bg-[var(--k-text)]/15" />
-                  <div className="absolute left-20 top-[45%] h-2 w-20 rounded bg-[var(--k-text)]/20" /><div className="absolute left-20 top-[58%] h-1.5 w-14 rounded bg-[var(--k-text)]/10" />
-                  <span className="absolute right-3 top-3 grid size-7 place-items-center rounded-full bg-[var(--k-surface)]/85 text-[var(--k-accent)] opacity-0 transition-opacity group-hover:opacity-100"><ArrowUpRight className="size-4" /></span>
+              <Link href={`/templates/${template.id}`} className="group block">
+                {/* Proof surface at the true card ratio. Deliberately blank —
+                    a fake mock-up of content the template may not have is a
+                    lie; the real thumbnail lands with render previews. */}
+                <div
+                  className="mb-3 w-full rounded-[6px] border border-[var(--k-border)] bg-[var(--k-surface)] transition-colors group-hover:border-[var(--k-border-strong)]"
+                  style={{ aspectRatio: 85.6 / 54 }}
+                />
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="truncate text-sm font-medium transition-colors group-hover:text-[var(--k-accent)]">
+                    {template.name}
+                  </span>
+                  <span className="qk-num shrink-0 text-xs text-[var(--k-text-faint)]">
+                    {new Date(template.updatedAt).toLocaleDateString()}
+                  </span>
                 </div>
-                <div className="flex items-start gap-3 px-5 pb-5"><div className="grid size-9 shrink-0 place-items-center rounded-[var(--k-radius)] bg-[var(--k-accent-soft)] text-[var(--k-accent)]"><LayoutTemplate className="size-4" /></div><div className="min-w-0"><div className="truncate font-semibold">{template.name}</div>
-                <div className="mt-0.5 text-xs text-[var(--k-text-muted)]">
-                  Updated {new Date(template.updatedAt).toLocaleDateString()}
-                </div></div></div>
               </Link>
             </li>
           ))}
         </ul>
       )}
-      {templates.length > 0 ? <div className="flex items-center gap-2 rounded-[var(--k-radius)] border border-dashed border-[var(--k-border)] px-4 py-3 text-xs text-[var(--k-text-muted)]"><Sparkles className="size-3.5 text-[var(--k-accent)]" />Open a template to adjust the layout, add data-bound fields, and save a new version automatically.</div> : null}
     </div>
   );
 }

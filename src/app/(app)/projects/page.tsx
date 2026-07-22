@@ -1,23 +1,30 @@
 // ============================================
-// QUICKARDS — Projects list
+// QUICKARDS — Batches
 // ============================================
+//
+// Batches are records, so they are set as a ruled table with tabular figures —
+// a manifest, not a grid of cards.
 
-import { ArrowRight, FileImage, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import Link from "next/link";
 
-import EmptyState from "@/components/app/EmptyState";
-import PageHeader from "@/components/app/PageHeader";
-import Button from "@/components/ui/Button";
 import { requireOrgScope } from "@/lib/auth/session";
 import { scoped } from "@/lib/db/scope";
 
 const STATUS_LABEL: Record<string, string> = {
   draft: "Draft",
-  data_uploaded: "Data uploaded",
-  images_uploaded: "Photos uploaded",
-  rendering: "Rendering…",
-  rendered: "Rendered",
+  data_uploaded: "Roster in",
+  images_uploaded: "Photos in",
+  rendering: "Rendering",
+  rendered: "Delivered",
   failed: "Failed",
+};
+
+/** Only the states that need attention earn colour. */
+const STATUS_TONE: Record<string, string> = {
+  rendering: "text-[var(--k-accent)]",
+  failed: "text-[var(--k-danger)]",
+  rendered: "text-[var(--k-success)]",
 };
 
 export default async function ProjectsPage() {
@@ -25,56 +32,64 @@ export default async function ProjectsPage() {
   const projects = await scoped(scope).projects.list();
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Projects"
-        subtitle="Each project is one batch: a template, your rows, and the rendered output."
-        action={
-          <Button href="/projects/new" icon={<Plus className="size-4" />}>
-            New project
-          </Button>
-        }
-      />
+    <div className="space-y-10">
+      <header className="flex flex-wrap items-end justify-between gap-6 border-b border-[var(--k-border)] pb-6">
+        <div>
+          <span className="qk-kicker">Production</span>
+          <h1 className="qk-display mt-3 text-[clamp(1.9rem,4vw,2.6rem)]">Batches</h1>
+        </div>
+        <Link
+          href="/projects/new"
+          className="inline-flex items-center gap-2 rounded-[var(--k-radius)] bg-[var(--k-accent)] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--k-accent-hover)]"
+        >
+          <Plus className="size-4" />
+          New batch
+        </Link>
+      </header>
 
       {projects.length === 0 ? (
-        <EmptyState
-          icon={<FileImage className="size-8" />}
-          title="No projects yet"
-          description="Create a project, import a CSV and a folder of photos, and render a print-ready batch."
-          action={
-            <Button href="/projects/new" icon={<Plus className="size-4" />}>
-              New project
-            </Button>
-          }
-        />
+        <div className="max-w-md py-8">
+          <p className="text-sm leading-7 text-[var(--k-text-muted)]">
+            No batches yet. A batch pairs one template with a roster and a folder
+            of photos, then renders the whole set to a print-ready PDF and ZIP.
+          </p>
+          <Link
+            href="/projects/new"
+            className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-[var(--k-accent)] underline-offset-4 hover:underline"
+          >
+            <Plus className="size-4" />
+            Start your first batch
+          </Link>
+        </div>
       ) : (
-        <ul className="overflow-hidden rounded-[calc(var(--k-radius)+4px)] border border-[var(--k-border)] bg-[var(--k-surface)] shadow-[var(--k-shadow)]">
-          {projects.map((project) => (
-            <li key={project.id}>
-              <Link
-                href={`/projects/${project.id}`}
-                className="group flex items-center justify-between gap-4 border-b border-[var(--k-border)] px-5 py-4 last:border-b-0 transition-colors hover:bg-[var(--k-surface-hover)] sm:px-6"
-              >
-                <div className="flex min-w-0 items-center gap-3"><div className="grid size-10 shrink-0 place-items-center rounded-[var(--k-radius)] bg-[var(--k-accent-soft)] text-[var(--k-accent)]"><FileImage className="size-4" /></div><div className="min-w-0">
-                  <div className="truncate font-semibold">{project.name}</div>
-                  <div className="mt-0.5 text-xs text-[var(--k-text-muted)]">
-                    Updated {new Date(project.updatedAt).toLocaleDateString()}
-                  </div>
-                </div></div>
-                <div className="flex shrink-0 items-center gap-3"><ProjectStatus status={project.status} /><ArrowRight className="size-4 text-[var(--k-text-faint)] transition-transform group-hover:translate-x-1 group-hover:text-[var(--k-accent)]" /></div>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <div>
+          <div className="qk-kicker grid grid-cols-[1fr_7rem_6rem] gap-4 border-b border-[var(--k-border)] pb-2.5">
+            <span>Batch</span>
+            <span>Status</span>
+            <span className="text-right">Updated</span>
+          </div>
+          <ul className="qk-ruled-app">
+            {projects.map((project) => (
+              <li key={project.id}>
+                <Link
+                  href={`/projects/${project.id}`}
+                  className="grid grid-cols-[1fr_7rem_6rem] items-center gap-4 py-4 transition-colors hover:text-[var(--k-accent)]"
+                >
+                  <span className="truncate text-sm font-medium">{project.name}</span>
+                  <span
+                    className={`text-xs ${STATUS_TONE[project.status] ?? "text-[var(--k-text-muted)]"}`}
+                  >
+                    {STATUS_LABEL[project.status] ?? project.status}
+                  </span>
+                  <span className="qk-num text-right text-xs text-[var(--k-text-faint)]">
+                    {new Date(project.updatedAt).toLocaleDateString()}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </div>
   );
-}
-
-function ProjectStatus({ status }: { status: string }) {
-  const isRendered = status === "rendered";
-  const isFailed = status === "failed";
-  const isWorking = status === "rendering";
-  const tone = isRendered ? "text-[var(--k-success)] bg-[color-mix(in_srgb,var(--k-success)_10%,transparent)]" : isFailed ? "text-[var(--k-danger)] bg-[color-mix(in_srgb,var(--k-danger)_10%,transparent)]" : isWorking ? "text-[var(--k-warning)] bg-[color-mix(in_srgb,var(--k-warning)_10%,transparent)]" : "text-[var(--k-text-muted)] bg-[var(--k-surface-2)]";
-  return <span className={`hidden items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium sm:inline-flex ${tone}`}><span className="qk-status-dot" />{STATUS_LABEL[status] ?? status}</span>;
 }
