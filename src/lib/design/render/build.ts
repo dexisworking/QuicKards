@@ -169,7 +169,7 @@ async function buildNode(node: DesignNode, ctx: Ctx): Promise<SvgIR | null> {
       inner = await buildImage(node, ctx);
       break;
     case "shape":
-      inner = buildShape(node, ctx);
+      inner = buildShape(node);
       break;
     case "code":
       inner = buildCode(node, ctx);
@@ -384,7 +384,7 @@ function placeholderRect(box: Rect): SvgIR {
 
 // ── Shape ───────────────────────────────────────────────────────────────────
 
-function buildShape(node: ShapeNode, _ctx: Ctx): SvgIR {
+function buildShape(node: ShapeNode): SvgIR {
   const attrs: Record<string, string | number> = {
     d: clipPathData(node.shape, node.transform),
     fill: node.fill ?? "none",
