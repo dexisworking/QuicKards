@@ -18,6 +18,7 @@ import { nextCookies } from "better-auth/next-js";
 import { organization } from "better-auth/plugins";
 
 import { db } from "@/lib/db/client";
+import { createPersonalOrg } from "@/lib/db/onboarding";
 import * as authSchema from "@/lib/db/schema/auth";
 
 export const auth = betterAuth({
@@ -27,6 +28,19 @@ export const auth = betterAuth({
     // client.ts) — the adapter cannot introspect table names otherwise.
     schema: authSchema,
   }),
+
+  databaseHooks: {
+    user: {
+      create: {
+        // Give every new user a personal workspace immediately, so they always
+        // have an org to own before reaching any (app) page. Race-free, unlike
+        // ensuring it in the layout (which renders concurrently with the page).
+        after: async (user) => {
+          await createPersonalOrg(user.id, user.name || user.email.split("@")[0]);
+        },
+      },
+    },
+  },
 
   emailAndPassword: {
     enabled: true,

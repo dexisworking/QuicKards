@@ -1,622 +1,194 @@
 @import "tailwindcss";
 
-/* ─────────────────────────────────────────────────────
-   QuicKards Design System — Swiss-Editor Theme
-   ───────────────────────────────────────────────────── */
+/* ============================================
+   QUICKARDS DESIGN SYSTEM
+   Inherits the DexForge brand tokens (dexforge.iamdex.codes). The marketing
+   surface uses these directly and is dark-only, for brand continuity. The
+   authenticated app layers a themeable --k-* namespace on top (see below).
+   ============================================ */
+
+@theme {
+  /* ── Core palette (from DexForge) ─────────── */
+  --color-bg: #050505;
+  --color-bg-secondary: #0a0a0a;
+  --color-bg-elevated: #0f0f0f;
+  --color-bg-elevated-hover: #161616;
+  --color-surface: #111111;
+  --color-surface-hover: #1a1a1a;
+
+  /* ── Red system (the brand signal) ────────── */
+  --color-red: #dc2626;
+  --color-red-accent: #ef4444;
+  --color-red-dark: #991b1b;
+  --color-red-pale: #1c0a0a;
+  --color-red-glow: rgba(220, 38, 38, 0.15);
+  --color-red-glow-strong: rgba(220, 38, 38, 0.3);
+
+  /* ── Neutral ramp ─────────────────────────── */
+  --color-gray-900: #0f0f0f;
+  --color-gray-800: #161616;
+  --color-gray-700: #1e1e1e;
+  --color-gray-600: #2a2a2a;
+  --color-gray-500: #3f3f3f;
+  --color-gray-400: #525252;
+  --color-gray-300: #71717a;
+  --color-gray-200: #a1a1aa;
+  --color-gray-100: #d4d4d8;
+  --color-gray-50: #fafafa;
+
+  /* ── Semantic ─────────────────────────────── */
+  --color-ink: #fafafa;
+  --color-ink-secondary: #a1a1aa;
+  --color-muted: #71717a;
+  --color-rule: #1e1e1e;
+  --color-rule-light: #2a2a2a;
+  --color-green: #10b981;
+  --color-amber: #f59e0b;
+  --color-blue: #3b82f6;
+
+  --color-text-primary: #fafafa;
+  --color-text-secondary: #a1a1aa;
+  --color-text-muted: #71717a;
+  --color-text-faint: #52525b;
+
+  /* ── Fonts ────────────────────────────────── */
+  --font-sans: var(--font-inter), Inter, ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-inter), Inter, ui-sans-serif, system-ui, sans-serif;
+
+  /* ── Radius ───────────────────────────────── */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+
+  /* ── Shadows ──────────────────────────────── */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.6);
+  --shadow-glow-red: 0 0 20px rgba(220, 38, 38, 0.15), 0 0 40px rgba(220, 38, 38, 0.05);
+}
 
 :root {
-  /* ── Base palette ── */
-  --background: #f8f8f6;
-  --surface: #ffffff;
-  --surface-2: #f3f3f0;
-  --surface-3: #eaeae6;
-  --foreground: #1a1a1e;
-  --muted: #6b6b76;
-  --muted-2: #9c9ca8;
-  --line: #e2e2de;
-  --line-2: #d0d0cb;
-
-  /* ── Accent (violet → indigo) ── */
-  --accent: #7c3aed;
-  --accent-hover: #6d28d9;
-  --accent-light: #ede9fe;
-  --accent-glow: rgba(124, 58, 237, 0.15);
-  --accent-gradient: linear-gradient(135deg, #7c3aed 0%, #6366f1 50%, #06b6d4 100%);
-  --accent-gradient-subtle: linear-gradient(135deg, rgba(124, 58, 237, 0.08) 0%, rgba(99, 102, 241, 0.06) 100%);
-
-  /* ── Semantic ── */
-  --success: #059669;
-  --success-light: #ecfdf5;
-  --warning: #d97706;
-  --warning-light: #fffbeb;
-  --danger: #dc2626;
-  --danger-light: #fef2f2;
-  --info: #2563eb;
-  --info-light: #eff6ff;
-
-  /* ── Shadows ── */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.08);
-  --shadow-glow: 0 0 24px var(--accent-glow);
-
-  /* ── Radius ── */
-  --radius-sm: 0.5rem;
-  --radius-md: 0.75rem;
-  --radius-lg: 1rem;
-  --radius-xl: 1.25rem;
-  --radius-2xl: 1.5rem;
-  --radius-full: 9999px;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-inter);
-  --font-mono: var(--font-jetbrains-mono);
-}
-
-/* ── Dark mode ── */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0c0c0e;
-    --surface: #161618;
-    --surface-2: #1e1e21;
-    --surface-3: #28282c;
-    --foreground: #f0f0f2;
-    --muted: #9c9ca8;
-    --muted-2: #6b6b76;
-    --line: #2a2a2e;
-    --line-2: #3a3a3f;
-
-    --accent: #a78bfa;
-    --accent-hover: #8b5cf6;
-    --accent-light: rgba(167, 139, 250, 0.12);
-    --accent-glow: rgba(167, 139, 250, 0.2);
-
-    --success-light: rgba(5, 150, 105, 0.1);
-    --warning-light: rgba(217, 119, 6, 0.1);
-    --danger-light: rgba(220, 38, 38, 0.1);
-    --info-light: rgba(37, 99, 235, 0.1);
-
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
-    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.3);
-    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
-  }
-}
-
-/* ─────────────────────────────────────────────────────
-   Global Reset & Base
-   ───────────────────────────────────────────────────── */
-
-* {
-  scrollbar-width: thin;
-  scrollbar-color: var(--line-2) transparent;
-}
-
-*::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-*::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-*::-webkit-scrollbar-thumb {
-  background: var(--line-2);
-  border-radius: 3px;
-}
-
-::selection {
-  background: var(--accent-light);
-  color: var(--foreground);
+  color-scheme: dark;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-inter), "Inter", system-ui, -apple-system, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
+/* ============================================
+   APP THEMING LAYER
+   Mirrors the DexForge portal pattern (globals.css [data-portal-theme]):
+   structure switches on [data-app-theme], the accent stays QuicKards red in
+   both. Components read --k-* via arbitrary-value utilities, so the marketing
+   surface (which uses the @theme tokens above) is completely unaffected and
+   switching is a runtime attribute flip.
+   ============================================ */
+
+[data-app-theme] {
+  --k-radius: 12px;
+  --k-accent: #dc2626;
+  --k-accent-hover: #ef4444;
+  --k-accent-fg: #ffffff;
+  --k-accent-soft: color-mix(in srgb, var(--k-accent) 12%, transparent);
+  --k-accent-border: color-mix(in srgb, var(--k-accent) 32%, transparent);
+  --k-success: #10b981;
+  --k-warning: #f59e0b;
+  --k-danger: #ef4444;
+
+  /* The editor stage is FIXED mid-neutral in BOTH themes. A white card on a
+     white app background is unreadable; a white card on near-black reads as
+     glowing. Figma and Canva both pin this. Do not theme this token. */
+  --k-stage: #8a8a8e;
+  --k-stage-grid: rgba(0, 0, 0, 0.06);
+
+  color: var(--k-text);
+  background: var(--k-bg);
 }
 
-/* ─────────────────────────────────────────────────────
-   Layout Utilities
-   ───────────────────────────────────────────────────── */
-
-.swiss-container {
-  width: min(1120px, calc(100% - 2rem));
-  margin-inline: auto;
+[data-app-theme="light"] {
+  --k-bg: #f7f7f8;
+  --k-surface: #ffffff;
+  --k-surface-2: #f1f1f3;
+  --k-surface-hover: #ececef;
+  --k-text: #0b0b0c;
+  --k-text-muted: #5b5f6e;
+  --k-text-faint: #8a8fa0;
+  --k-border: rgba(11, 11, 12, 0.1);
+  --k-border-strong: rgba(11, 11, 12, 0.16);
+  --k-shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 10px 30px rgba(16, 24, 40, 0.08);
+  color-scheme: light;
 }
 
-/* ─────────────────────────────────────────────────────
-   Card / Section
-   ───────────────────────────────────────────────────── */
-
-.swiss-section {
-  border: 1px solid var(--line);
-  background: var(--surface);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-sm);
-  transition: box-shadow 0.25s ease, border-color 0.25s ease;
+[data-app-theme="dark"] {
+  --k-bg: #0a0a0b;
+  --k-surface: #121213;
+  --k-surface-2: #1a1a1c;
+  --k-surface-hover: #202023;
+  --k-text: #fafafa;
+  --k-text-muted: #a1a1aa;
+  --k-text-faint: #6b6f7a;
+  --k-border: rgba(255, 255, 255, 0.1);
+  --k-border-strong: rgba(255, 255, 255, 0.16);
+  --k-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 14px 44px rgba(0, 0, 0, 0.45);
+  color-scheme: dark;
 }
 
-.swiss-section:hover {
-  box-shadow: var(--shadow-md);
+/* Inputs do not reliably inherit `color`, which produces near-invisible text on
+   the light app surface. Carried across from DexForge's identical fix. */
+[data-app-theme] input,
+[data-app-theme] textarea,
+[data-app-theme] select {
+  color: var(--k-text);
+}
+[data-app-theme] input::placeholder,
+[data-app-theme] textarea::placeholder {
+  color: var(--k-text-faint);
 }
 
-.swiss-section-accent {
-  border: 1px solid var(--line);
-  background: var(--surface);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-sm);
-  border-top: 3px solid var(--accent);
-  transition: box-shadow 0.25s ease;
-}
+/* ============================================
+   SIGNATURE UTILITIES (from DexForge)
+   ============================================ */
 
-.swiss-section-accent:hover {
-  box-shadow: var(--shadow-glow);
-}
-
-.swiss-section-flat {
-  border: 1px solid var(--line);
-  background: var(--surface);
-  border-radius: var(--radius-xl);
-}
-
-/* ─────────────────────────────────────────────────────
-   Grid / Canvas Background
-   ───────────────────────────────────────────────────── */
-
-.swiss-grid-bg {
-  background-image:
-    radial-gradient(circle, var(--line-2) 1px, transparent 1px);
-  background-size: 16px 16px;
-}
-
-.swiss-dot-grid {
-  background-image:
-    radial-gradient(circle, rgba(124, 58, 237, 0.08) 1px, transparent 1px);
-  background-size: 20px 20px;
-}
-
-/* ─────────────────────────────────────────────────────
-   Typography
-   ───────────────────────────────────────────────────── */
-
-.swiss-kicker {
-  font-size: 0.69rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--muted);
-  font-weight: 600;
-}
-
-.swiss-heading {
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--foreground);
-  line-height: 1.15;
-}
-
-.swiss-gradient-text {
-  background: var(--accent-gradient);
+.gradient-text-red {
+  background: linear-gradient(135deg, #ef4444, #dc2626, #ff6b6b);
   -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
   background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
 }
 
-/* ─────────────────────────────────────────────────────
-   Inputs
-   ───────────────────────────────────────────────────── */
-
-.swiss-input,
-.swiss-select,
-.swiss-file {
-  width: 100%;
-  border: 1px solid var(--line);
-  background: var(--surface);
-  color: var(--foreground);
-  padding: 0.6rem 0.75rem;
-  font-size: 0.875rem;
-  border-radius: var(--radius-md);
-  outline: none;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+.glass {
+  background: rgba(17, 17, 17, 0.6);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--color-rule);
 }
 
-.swiss-input::placeholder,
-.swiss-select::placeholder {
-  color: var(--muted-2);
+.glow-red {
+  box-shadow: var(--shadow-glow-red);
 }
 
-.swiss-input:focus,
-.swiss-select:focus,
-.swiss-file:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-glow);
+.bg-grid {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 48px 48px;
 }
 
-.swiss-input:hover:not(:focus),
-.swiss-select:hover:not(:focus) {
-  border-color: var(--line-2);
+.bg-dots {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+  background-size: 22px 22px;
 }
 
-/* Range slider accent */
-.swiss-input[type="range"] {
-  padding: 0;
-  border: none;
-  background: transparent;
-  accent-color: var(--accent);
-}
-
-.swiss-input[type="range"]:focus {
-  box-shadow: none;
-}
-
-/* Color input */
-.swiss-color-input {
-  width: 100%;
-  height: 2.5rem;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  background: var(--surface);
-  cursor: pointer;
-  padding: 2px;
-  transition: border-color 0.2s ease;
-}
-
-.swiss-color-input:hover {
-  border-color: var(--line-2);
-}
-
-.swiss-color-input:focus {
-  border-color: var(--accent);
-  outline: none;
-}
-
-/* ─────────────────────────────────────────────────────
-   Buttons
-   ───────────────────────────────────────────────────── */
-
-.swiss-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.375rem;
-  border: none;
-  background: var(--accent);
-  color: #ffffff;
-  padding: 0.55rem 1rem;
-  font-size: 0.84rem;
-  font-weight: 600;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
-  position: relative;
-  overflow: hidden;
-}
-
-.swiss-btn:hover:not(:disabled) {
-  background: var(--accent-hover);
-  box-shadow: var(--shadow-glow);
-}
-
-.swiss-btn:active:not(:disabled) {
-  transform: scale(0.98);
-}
-
-.swiss-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.swiss-btn-ghost {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.375rem;
-  border: 1px solid var(--line);
-  background: var(--surface);
-  color: var(--foreground);
-  padding: 0.55rem 1rem;
-  font-size: 0.84rem;
-  font-weight: 500;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
-}
-
-.swiss-btn-ghost:hover:not(:disabled) {
-  background: var(--surface-2);
-  border-color: var(--line-2);
-}
-
-.swiss-btn-ghost:active:not(:disabled) {
-  transform: scale(0.98);
-}
-
-.swiss-btn-ghost:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.swiss-btn-danger {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.375rem;
-  border: 1px solid var(--danger);
-  background: var(--danger-light);
-  color: var(--danger);
-  padding: 0.55rem 1rem;
-  font-size: 0.84rem;
-  font-weight: 600;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: background 0.2s ease, transform 0.15s ease;
-}
-
-.swiss-btn-danger:hover:not(:disabled) {
-  background: var(--danger);
-  color: #ffffff;
-}
-
-/* ─────────────────────────────────────────────────────
-   Badges / Pills
-   ───────────────────────────────────────────────────── */
-
-.swiss-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  padding: 0.2rem 0.55rem;
-  border-radius: var(--radius-full);
-  text-transform: uppercase;
-}
-
-.swiss-badge-accent {
-  background: var(--accent-light);
-  color: var(--accent);
-}
-
-.swiss-badge-success {
-  background: var(--success-light);
-  color: var(--success);
-}
-
-.swiss-badge-warning {
-  background: var(--warning-light);
-  color: var(--warning);
-}
-
-.swiss-badge-danger {
-  background: var(--danger-light);
-  color: var(--danger);
-}
-
-.swiss-badge-muted {
-  background: var(--surface-2);
-  color: var(--muted);
-}
-
-/* ─────────────────────────────────────────────────────
-   Status Dot
-   ───────────────────────────────────────────────────── */
-
-.swiss-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.swiss-dot-accent {
-  background: var(--accent);
-}
-
-.swiss-dot-success {
-  background: var(--success);
-}
-
-.swiss-dot-warning {
-  background: var(--warning);
-}
-
-.swiss-dot-danger {
-  background: var(--danger);
-}
-
-/* ─────────────────────────────────────────────────────
-   Separator
-   ───────────────────────────────────────────────────── */
-
-.swiss-separator {
-  width: 3px;
-  height: 3px;
-  border-radius: 50%;
-  background: var(--muted-2);
-  flex-shrink: 0;
-}
-
-/* ─────────────────────────────────────────────────────
-   Animations
-   ───────────────────────────────────────────────────── */
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(16px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes pulseGlow {
-  0%, 100% { box-shadow: 0 0 8px var(--accent-glow); }
-  50% { box-shadow: 0 0 20px var(--accent-glow); }
-}
-
-@keyframes progressShrink {
-  from { width: 100%; }
-  to { width: 0%; }
-}
-
-@keyframes shimmer {
-  from { transform: translateX(-100%); }
-  to { transform: translateX(100%); }
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.4s ease-out forwards;
-}
-
-.animate-slide-up {
-  animation: slideUp 0.5s ease-out forwards;
-}
-
-.animate-pulse-glow {
-  animation: pulseGlow 2s ease-in-out infinite;
-}
-
-/* ─────────────────────────────────────────────────────
-   Drag / Drop Zones
-   ───────────────────────────────────────────────────── */
-
-.swiss-dropzone {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 6rem;
-  width: 100%;
-  border: 2px dashed var(--line);
-  border-radius: var(--radius-xl);
-  padding: 1rem;
-  cursor: pointer;
-  transition: border-color 0.2s ease, background 0.2s ease;
-  color: var(--muted);
-  font-size: 0.875rem;
-}
-
-.swiss-dropzone:hover {
-  border-color: var(--accent);
-  background: var(--accent-light);
-  color: var(--accent);
-}
-
-.swiss-dropzone-active {
-  border-color: var(--accent);
-  background: var(--accent-light);
-  color: var(--accent);
-  transform: scale(1.01);
-}
-
-/* ─────────────────────────────────────────────────────
-   Mesh Gradient Background (Hero)
-   ───────────────────────────────────────────────────── */
-
-.swiss-mesh-bg {
-  background:
-    radial-gradient(ellipse at 20% 50%, rgba(124, 58, 237, 0.08) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 20%, rgba(99, 102, 241, 0.06) 0%, transparent 50%),
-    radial-gradient(ellipse at 60% 80%, rgba(6, 182, 212, 0.05) 0%, transparent 50%),
-    var(--background);
-}
-
-/* ─────────────────────────────────────────────────────
-   Frosted Glass
-   ───────────────────────────────────────────────────── */
-
-.swiss-glass {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-@media (prefers-color-scheme: dark) {
-  .swiss-glass {
-    background: rgba(22, 22, 24, 0.75);
-    border-color: rgba(255, 255, 255, 0.06);
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
   }
-
-  .swiss-mesh-bg {
-    background:
-      radial-gradient(ellipse at 20% 50%, rgba(167, 139, 250, 0.06) 0%, transparent 50%),
-      radial-gradient(ellipse at 80% 20%, rgba(99, 102, 241, 0.04) 0%, transparent 50%),
-      radial-gradient(ellipse at 60% 80%, rgba(6, 182, 212, 0.03) 0%, transparent 50%),
-      var(--background);
-  }
-}
-
-/* ─────────────────────────────────────────────────────
-   Table
-   ───────────────────────────────────────────────────── */
-
-.swiss-table {
-  width: 100%;
-  text-align: left;
-  font-size: 0.8rem;
-  border-collapse: collapse;
-}
-
-.swiss-table thead {
-  background: var(--surface-2);
-  color: var(--muted);
-  text-transform: uppercase;
-  font-size: 0.7rem;
-  letter-spacing: 0.06em;
-  font-weight: 600;
-  position: sticky;
-  top: 0;
-  z-index: 1;
-}
-
-.swiss-table th,
-.swiss-table td {
-  padding: 0.5rem 0.75rem;
-}
-
-.swiss-table tbody tr {
-  border-top: 1px solid var(--line);
-  transition: background 0.15s ease;
-}
-
-.swiss-table tbody tr:hover {
-  background: var(--surface-2);
-}
-
-.swiss-table tbody tr:nth-child(even) {
-  background: var(--surface-2);
-}
-
-.swiss-table tbody tr:nth-child(even):hover {
-  background: var(--surface-3);
-}
-
-/* ─────────────────────────────────────────────────────
-   Progress Bar
-   ───────────────────────────────────────────────────── */
-
-.swiss-progress {
-  height: 4px;
-  border-radius: var(--radius-full);
-  background: var(--surface-3);
-  overflow: hidden;
-}
-
-.swiss-progress-bar {
-  height: 100%;
-  background: var(--accent-gradient);
-  border-radius: var(--radius-full);
-  transition: width 0.25s ease;
 }
